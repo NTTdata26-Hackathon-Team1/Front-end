@@ -1,14 +1,16 @@
+
 import React, { useState } from 'react';
 import { Typography, TextField, Button, Box } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+
 
 const TopMenu: React.FC = () => {
     const [name, setName] = useState('');
-    console.log(name);
+    const navigate = useNavigate();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // ここで送信処理を追加できます
-        alert(`送信された名前: ${name}`);
+        navigate('/standby');
     };
 
     return (
@@ -23,7 +25,7 @@ const TopMenu: React.FC = () => {
                     value={name}
                     onChange={e => setName(e.target.value)}
                 />
-                <Button type="submit" variant="contained" color="primary">
+                <Button type="submit" variant="contained" disabled={!name.trim()} color="primary">
                     送信
                 </Button>
             </Box>
