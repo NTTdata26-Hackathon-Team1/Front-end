@@ -4,6 +4,7 @@ import TopMenu from './TopMenu';
 import SubPage from './SubPage';
 import Standby from './Standby';
 import ParentToppickPage from './ParentTopicPage';
+import ChildAnswer from './ChildAnswer';
 import ChildWaiting from './ChildWaiting';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/standby" element={<Standby />} />
         <Route path="/parenttopick" element={<ParentToppickPage />} />
         <Route path="/childwating" element={<ChildWaiting />} />
+        <Route path="/childanswer" element={<ChildAnswer />} />
         
       </Routes>
     </Router>
