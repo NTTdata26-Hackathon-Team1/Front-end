@@ -7,6 +7,7 @@ import ParentToppickPage from './ParentTopicPage';
 import ParentWaiting from './ParentWaiting';
 import ChildAnswer from './ChildAnswer';
 import ChildWaiting from './ChildWaiting';
+import LastAnswer from './lastAnswer';
 
 function App() {
   return (
@@ -19,7 +20,7 @@ function App() {
         <Route path="/parentwaiting" element={<ParentWaiting />} />
         <Route path="/childwating" element={<ChildWaiting />} />
         <Route path="/childanswer" element={<ChildAnswer />} />
-        
+        <Route path="/lastanswer" element={<LastAnswer />} />
       </Routes>
     </Router>
   );
