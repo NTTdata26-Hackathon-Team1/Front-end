@@ -37,7 +37,9 @@ const Standby: React.FC = () => {
 		setErrMsg(null);
 
 		try {
-			const { data, error } = await supabase.functions.invoke<UsernameRow[]>('dynamic-api');
+			const { data, error } = await supabase.functions.invoke<UsernameRow[]>('dynamic-api', {
+				body: { method: "send-username-list" }
+			});
 			if (cancelledRef.current) return;
 
 			if (error) {
