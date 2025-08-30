@@ -90,7 +90,7 @@ const TopMenu: React.FC = () => {
         const { data, error } = await supabase.functions.invoke('dynamic-api', {
             body: {
                 // Edge Function 側でルーティングするなら "action" を渡すのもアリ
-                action: 'push_to_tab',
+                action: 'push-to-tab',
                 target_user_id: userId, // ユーザー単位
                 tab_id: tabId,          // タブ単位
                 type: 'notify',
