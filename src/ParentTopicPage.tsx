@@ -1,16 +1,34 @@
 import React, { useState } from 'react';
 import { Typography, TextField, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from './supabaseClient'; // ★ supabaseクライアントをimport
 
 const ParentTopicPage: React.FC = () => {
     const [topic, setTopic] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("送信されたお題:", topic);
-        // 後でここで次の画面に遷移させる
-        // navigate('/nextpage'); ← 後から追加
+        if (!topic.trim()) return;
+
+        try {
+            // ★ Edge Functionに送信
+            const { data, error } = await supabase.functions.invoke('submit-topic', {
+                body: { topic: topic.trim() },
+            });
+
+            if (error) {
+                console.error('送信エラー:', error.message);
+                return;
+            }
+
+            console.log("送信成功:", data);
+
+            // ★ 成功したら次の画面に遷移（必要に応じてdataも渡せる）
+            navigate('/nextpage', { state: { topic: topic.trim() } });
+        } catch (err) {
+            console.error('予期せぬエラー:', err);
+        }
     };
 
     return (
