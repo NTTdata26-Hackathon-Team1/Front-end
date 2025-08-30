@@ -62,6 +62,8 @@ const TopMenu: React.FC = () => {
             },
         ]);
 
+        sessionStorage.setItem("user_name", value);
+
         if (error) {
             console.error('code:', error.code, 'msg:', error.message, 'details:', error.details, 'hint:', error.hint);
             setErrorText('名前の保存に失敗しました');
