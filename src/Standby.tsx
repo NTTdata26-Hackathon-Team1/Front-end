@@ -17,6 +17,11 @@ const Standby: React.FC = () => {
 	const [calling, setCalling] = useState(false);
 	const [errMsg, setErrMsg] = useState<string | null>(null);
 	const [usernames, setUsernames] = useState<string[]>([]);
+
+	// 「準備完了」送信の状態: idle | sending | done | error
+	const [readyState, setReadyState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+	const [readyMsg, setReadyMsg] = useState<string | null>(null);
+
 	const cancelledRef = useRef(false);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const inFlightRef = useRef(false); // 競合防止：前回の呼び出しが終わるまで次を送らない
@@ -38,7 +43,7 @@ const Standby: React.FC = () => {
 
 		try {
 			const { data, error } = await supabase.functions.invoke<UsernameRow[]>('dynamic-api', {
-				body: { method: "send-username-list" }
+				body: { method: 'send-username-list' }
 			});
 			if (cancelledRef.current) return;
 
@@ -61,6 +66,30 @@ const Standby: React.FC = () => {
 				// setCalling(false); // {calling && <Typography>更新確認中…</Typography>} と一緒に使う
 				scheduleNext();
 			}
+		}
+	};
+
+	// 準備完了を Supabase へ記録
+	const handleReadyClick = async () => {
+		if (readyState === 'sending' || readyState === 'done') return; // 多重送信防止
+		setReadyState('sending');
+		setReadyMsg(null);
+
+		try {
+			const { error } = await supabase
+				.from('is_ready')
+				.insert({ is_ready: true }); // id/created_at はDB側のデフォルトに任せる
+
+			if (error) {
+				setReadyState('error');
+				setReadyMsg(error.message ?? '準備完了の記録に失敗しました');
+			} else {
+				setReadyState('done');
+				setReadyMsg('準備完了を記録しました');
+			}
+		} catch (e: any) {
+			setReadyState('error');
+			setReadyMsg(e?.message ?? '準備完了の記録に失敗しました（unknown error）');
 		}
 	};
 
@@ -126,9 +155,23 @@ const Standby: React.FC = () => {
 				</Box>
 			</Box>
 
-			<Button variant="outlined" sx={{ width: 120, fontSize: '1.2rem' }}>
-				準備完了
+			<Button
+				variant="outlined"
+				sx={{ width: 120, fontSize: '1.2rem' }}
+				onClick={handleReadyClick}
+				disabled={readyState === 'sending' || readyState === 'done'}
+			>
+				{readyState === 'sending' ? '送信中…' : readyState === 'done' ? '送信済み' : '準備完了'}
 			</Button>
+
+			{readyMsg && (
+				<Typography
+					sx={{ mt: 1 }}
+					color={readyState === 'error' ? 'error' : 'primary'}
+				>
+					{readyMsg}
+				</Typography>
+			)}
 		</Box>
 	);
 };
