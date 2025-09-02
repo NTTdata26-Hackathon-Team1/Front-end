@@ -1,4 +1,3 @@
-// supabase/functions/clever-handler/index.ts
 import { createClient } from "npm:@supabase/supabase-js@2";
 // ---- CORS ----
 const corsHeaders = {
@@ -40,13 +39,6 @@ async function readJson(req) {
 const handlers = {
   /**
    * ラウンド初期化＆取得（等幹）
-   * - params: { tab_id: string, user_name?: string }
-   * - User_list_test から room_name を取得
-   * - 同 room の参加者を created_at で並べ、「最新 → 残りは古い順」に整列して n/N を算出
-   * - 部屋の最新 round（roomMax）を求める
-   * - すでに自分の最新 round が roomMax なら その値を返す（挿入しない）
-   * - そうでなければ nextRound=roomMax+1 を自分の行として挿入（競合時は二重挿入を避ける）
-   * - 失敗時も HTTP 200 で {ok:false,error} を返す
    */ async "init-round"(params = {}) {
         const tab_id = String(params?.tab_id ?? "").trim();
         let user_name = String(params?.user_name ?? "").trim();
@@ -115,30 +107,28 @@ const handlers = {
             error: myLastErr.message ?? "DB select failed (dynamic_user_info my last)"
         }, 200);
         const myLast = myLastRows && myLastRows[0] && typeof myLastRows[0].round === "number" ? myLastRows[0].round : null;
-        // すでに自分が部屋の最新ラウンドを持っているなら挿入せず返す
         if (myLast !== null && myLast === roomMax && roomMax > 0) {
             return json({
                 ok: true,
                 round: roomMax
             }, 200);
         }
-        // 5) まだ持っていなければ、次のラウンドを用意
+        // 5) 次のラウンド
         const nextRound = roomMax + 1;
         const host = N > 0 ? nextRound % N === n : false;
-        // 等幹ポイント2：直前に誰かが同じ (tab_id, nextRound) を入れていないか確認
+        // 二重挿入防止
         const { data: dupRows, error: dupErr } = await supabase.from("dynamic_user_info").select("id,round").eq("tab_id", tab_id).eq("round", nextRound).limit(1);
         if (dupErr) return json({
             ok: false,
             error: dupErr.message ?? "DB select failed (dup check)"
         }, 200);
         if (dupRows && dupRows.length > 0) {
-            // 既に存在した（レース対策）→ そのまま返す
             return json({
                 ok: true,
                 round: nextRound
             }, 200);
         }
-        // 6) 自分の行を挿入
+        // 6) 挿入
         const payload = {
             id: crypto.randomUUID(),
             tab_id,
@@ -160,33 +150,33 @@ const handlers = {
             round: nextRound
         }, 200);
     },
-    // 親: お題を保存
-    async "submit-topic"(params = {}) {
+  /**
+   * 親: お題を保存（更新版）
+   * - params: { txt: string, tab_id: string }
+   * - dynamic_user_info で同じ tab_id の「最新1件」を探し、その行の input_QA を txt に更新
+   * - 行が見つからなければ 404 を返す（通常は init-round が先に作成している想定）
+   */ async "submit-topic"(params = {}) {
         const txt = String(params?.txt ?? "").trim();
         const tab_id = String(params?.tab_id ?? "").trim();
-        const user_name = String(params?.user_name ?? "").trim();
         if (!txt) return err("txt is required", 422);
         if (!tab_id) return err("tab_id is required", 422);
-        if (!user_name) return err("user_name is required", 422);
-        const payload = {
-            id: crypto.randomUUID(),
-            tab_id,
-            user_name,
-            now_host: true,
-            input_QA: txt,
-            vote_to: null,
-            round: 1
-        };
-        const { data, error } = await supabase.from("dynamic_user_info").insert([
-            payload
-        ]).select().single();
-        if (error) return err(error.message ?? "DB insert failed", 500);
+        // 対象行を取得（同 tab_id の最新1件）
+        const { data: row, error: selErr } = await supabase.from("dynamic_user_info").select("id").eq("tab_id", tab_id).order("created_at", {
+            ascending: false
+        }).limit(1).maybeSingle();
+        if (selErr) return err(selErr.message ?? "DB select failed", 500);
+        if (!row?.id) return err("target row for this tab_id not found (call init-round first)", 404);
+        // 更新
+        const { data, error: updErr } = await supabase.from("dynamic_user_info").update({
+            input_QA: txt
+        }).eq("id", row.id).select().single();
+        if (updErr) return err(updErr.message ?? "DB update failed", 500);
         return json({
             ok: true,
             row: data
-        }, 201);
+        }, 200);
     },
-    // 子: 回答を保存
+    // 子: 回答を保存（従来どおり、必要があれば後で合わせて等幹化）
     async "submit-answer"(params = {}) {
         const txt = String(params?.txt ?? "").trim();
         const tab_id = String(params?.tab_id ?? "").trim();
@@ -251,7 +241,7 @@ const handlers = {
             answers
         }, 200);
     },
-    // 親待機の判定：全子回答が揃ったか？
+    // 親待機の判定
     async "are-children-answers-complete"() {
         const { count: readyCount, error: er1 } = await supabase.from("is_ready").select("id", {
             count: "exact",
@@ -288,7 +278,7 @@ const handlers = {
             answers
         }, 200);
     },
-    // 親が選んだ回答を確定：total_pt + 1 & シグナル（vote_to='SELECTED'）
+    // 親が選んだ回答を確定：total_pt + 1 & シグナル
     async "mark-selected-answer"(params = {}) {
         const user_name = String(params?.user_name ?? "").trim();
         const input_QA = String(params?.input_QA ?? "").trim();
@@ -321,7 +311,7 @@ const handlers = {
             decided: (count ?? 0) > 0
         }, 200);
     },
-    // 最も total_pt が高い1件を best、それ以外を others
+    // 最も total_pt が高い1件
     async "get-selected-answer"(params = {}) {
         const roundParam = params?.round;
         const tabId = String(params?.tab_id ?? "").trim();
