@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Typography, TextField, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
@@ -7,12 +7,57 @@ import { supabase } from './supabaseClient';
 const getTabId = () => sessionStorage.getItem('tab_id') ?? '';
 const getUserName = () => sessionStorage.getItem('user_name') ?? '';
 
+type InitRoundResp = { ok: boolean; round?: number; error?: string };
+
 const ParentTopicPage: React.FC = () => {
     const [topic, setTopic] = useState('');
     const [sending, setSending] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
+    // ← 追加: ラウンド表示用
+    const [round, setRound] = useState<number | null>(null);
+    const [roundLoading, setRoundLoading] = useState<boolean>(false);
+
     const navigate = useNavigate();
+
+    // 画面起動時に round を取得して左上に表示
+    useEffect(() => {
+        const boot = async () => {
+            const tab_id = getTabId();
+            const user_name = getUserName();
+            if (!tab_id || !user_name) {
+                setErr('tab_id もしくは user_name が見つかりません（前画面での保存を確認してください）');
+                return;
+            }
+            setRoundLoading(true);
+            setErr(null);
+            try {
+                const { data, error } = await supabase.functions.invoke<InitRoundResp>('clever-handler', {
+                    body: {
+                        method: 'init-round',
+                        tab_id,
+                        user_name,
+                    },
+                });
+                if (error) {
+                    setErr(error.message ?? 'ラウンド情報の取得に失敗しました');
+                    setRoundLoading(false);
+                    return;
+                }
+                if (!data?.ok || typeof data.round !== 'number') {
+                    setErr((data as any)?.error ?? 'ラウンド情報の取得に失敗しました');
+                    setRoundLoading(false);
+                    return;
+                }
+                setRound(data.round);
+            } catch (e: any) {
+                setErr(e?.message ?? 'ラウンド情報の取得に失敗しました（unknown error）');
+            } finally {
+                setRoundLoading(false);
+            }
+        };
+        boot();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,7 +79,7 @@ const ParentTopicPage: React.FC = () => {
             // Edge Function: clever-handler を呼ぶ
             const { data, error } = await supabase.functions.invoke('clever-handler', {
                 body: {
-                    method: "submit-topic",
+                    method: 'submit-topic',
                     // 単純化："txt" と一緒に tab_id / user_name も渡す
                     txt,
                     tab_id,
@@ -57,7 +102,14 @@ const ParentTopicPage: React.FC = () => {
     };
 
     return (
-        <Box display="flex" flexDirection="column" alignItems="center" mt={8}>
+        <Box display="flex" flexDirection="column" alignItems="center" mt={8} sx={{ position: 'relative', width: '100%' }}>
+            {/* 画面左上表示 */}
+            <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    第 {roundLoading ? '…' : (round ?? '—')} ターン
+                </Typography>
+            </Box>
+
             <Typography variant="h4" component="h1" gutterBottom>
                 あなたは親です
             </Typography>

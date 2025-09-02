@@ -13,10 +13,21 @@ type DecideRouteResp = {
 	leader_tab_id?: string;
 	routes?: RouteEntry[];
 	counts?: { ready: number; users: number };
+	error?: string;
 };
 
-const POLL_MS_ACTIVE = 3000;  // タブが見えている間のポーリング間隔
-const POLL_MS_HIDDEN = 15000; // タブが非表示のときの間隔（負荷軽減）
+// ★ dynamic-api:get-tab-room-info のレスポンス
+type RoomInfoByTabResp = {
+	ok: boolean;
+	room_name: string | null;
+	num_of_r: number | null;
+	members: string[];   // 部屋に所属するユーザー名の配列
+	num_of_s: number;    // 同じ room_name レコード件数（部屋の参加人数の同期値）
+	error?: string;
+};
+
+const POLL_MS_ACTIVE = 3000;   // タブが見えている間のポーリング間隔
+const POLL_MS_HIDDEN = 15000;  // タブが非表示のとき（負荷軽減）
 
 function arraysEqual(a: string[], b: string[]) {
 	if (a.length !== b.length) return false;
@@ -24,14 +35,19 @@ function arraysEqual(a: string[], b: string[]) {
 	return true;
 }
 
-// 追加: sessionStorage から tab_id / user_name を取得
+// sessionStorage から tab_id / user_name を取得
 const getTabIdFromSession = () => sessionStorage.getItem('tab_id') ?? null;
 const getUserNameFromSession = () => sessionStorage.getItem('user_name') ?? null;
 
 const Standby: React.FC = () => {
-	const [calling, setCalling] = useState(false);
 	const [errMsg, setErrMsg] = useState<string | null>(null);
 	const [usernames, setUsernames] = useState<string[]>([]);
+
+	// 部屋情報の表示用
+	const [myRoomName, setMyRoomName] = useState<string | null>(null);
+	const [myNumOfR, setMyNumOfR] = useState<number | null>(null);
+	const [roomUsernames, setRoomUsernames] = useState<string[]>([]);
+	const [roomCount, setRoomCount] = useState<number>(0); // num_of_s を表示したい場合に使用
 
 	// 「準備完了」送信の状態
 	const [readyState, setReadyState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
@@ -59,43 +75,73 @@ const Standby: React.FC = () => {
 		setErrMsg(null);
 
 		try {
-			// 1) ユーザー一覧（10分以内）を取得
+			const myTab = getTabIdFromSession();
+
+			// 1) ユーザー一覧（10分以内）
 			const { data: usersData, error: usersErr } =
 				await supabase.functions.invoke<UsernameRow[]>('dynamic-api', {
-					body: { method: 'send-username-list' }
+					body: { method: 'send-username-list' },
 				});
+
 			if (cancelledRef.current || routedRef.current) return;
 
 			if (usersErr) {
-				setErrMsg(usersErr.message ?? 'Edge Function calling : failed (user list)');
+				setErrMsg((prev) => prev ?? (usersErr.message || 'failed: send-username-list'));
 			} else {
 				const names =
 					(usersData ?? [])
 						.filter((row): row is UsernameRow => !!row && typeof (row as any).user_name === 'string')
 						.map((row) => row.user_name);
-				// 変化があるときだけ更新（無駄な再描画を抑制）
 				setUsernames((prev) => (arraysEqual(prev, names) ? prev : names));
 			}
 
-			// 2) 直後にルーティング判定
+			// 1.5) 現在のタブIDに紐づく部屋情報を取得（dynamic-api:get-tab-room-info）
+			if (myTab) {
+				const { data: infoData, error: infoErr } =
+					await supabase.functions.invoke<RoomInfoByTabResp>('dynamic-api', {
+						body: { method: 'get-tab-room-info', params: { tab_id: myTab } }, // ← ここを修正
+					});
+
+				if (cancelledRef.current || routedRef.current) return;
+
+				if (infoErr) {
+					// non-2xx のときに来る一般的なメッセージ
+					setErrMsg((prev) => prev ?? (infoErr.message || 'failed: get-tab-room-info'));
+				} else if (!infoData?.ok) {
+					// 200 でも {ok:false} の場合
+					setErrMsg((prev) => prev ?? (infoData?.error || 'get-tab-room-info error'));
+					// 表示はクリアしておく
+					setMyRoomName(null);
+					setMyNumOfR(null);
+					setRoomUsernames([]);
+					setRoomCount(0);
+				} else {
+					setMyRoomName(infoData.room_name ?? null);
+					setMyNumOfR(typeof infoData.num_of_r === 'number' ? infoData.num_of_r : null);
+					setRoomUsernames((prev) =>
+						arraysEqual(prev, infoData.members ?? []) ? prev : (infoData.members ?? []));
+					setRoomCount(typeof infoData.num_of_s === 'number' ? infoData.num_of_s : 0);
+				}
+			}
+
+			// 2) ルーティング判定
 			const { data: routeData, error: routeErr } =
 				await supabase.functions.invoke<DecideRouteResp>('dynamic-api', {
-					body: { method: 'decide-and-route' }
+					body: { method: 'decide-and-route' },
 				});
 
 			if (cancelledRef.current || routedRef.current) return;
 
 			if (routeErr) {
-				// 判定エラーは致命ではないので、メッセージだけ出して次回へ
-				setErrMsg((prev) => prev ?? routeErr.message ?? 'Edge Function calling : failed (decide-and-route)');
+				setErrMsg((prev) => prev ?? (routeErr.message || 'failed: decide-and-route'));
 			} else if (routeData?.ok && routeData.matched && Array.isArray(routeData.routes)) {
-				const myTab = getTabIdFromSession();
-				if (myTab) {
-					const mine = routeData.routes.find((r) => r.tab_id === myTab);
+				const myTabId = getTabIdFromSession();
+				if (myTabId) {
+					const mine = routeData.routes.find((r) => r.tab_id === myTabId);
 					if (mine?.to && !routedRef.current) {
-						routedRef.current = true;            // 多重遷移防止
+						routedRef.current = true;
 						if (timerRef.current) clearTimeout(timerRef.current);
-						navigate(mine.to);                   // 例: "/parenttopick" or "/childwating"
+						navigate(mine.to); // 例: "/parenttopick" or "/childwating"
 						return;
 					}
 				}
@@ -127,10 +173,10 @@ const Standby: React.FC = () => {
 			const { error } = await supabase
 				.from('is_ready')
 				.insert({
-					is_ready: true,   // 既存カラム
-					tab_id,           // 追加
-					user_name         // 追加
-				}); // id/created_at はDB側 default
+					is_ready: true,
+					tab_id,
+					user_name,
+				});
 
 			if (error) {
 				setReadyState('error');
@@ -179,6 +225,28 @@ const Standby: React.FC = () => {
 				</Typography>
 			)}
 
+			{/* 受け取った room_name / num_of_r / 部屋所属ユーザー一覧 */}
+			<Box
+				mt={3}
+				width={520}
+				p={2}
+				border="1px solid #888"
+				borderRadius={2}
+				bgcolor="#f7f7f7"
+			>
+				<Typography variant="h6" gutterBottom>現在の部屋情報</Typography>
+				<Typography>room name: <b>{myRoomName ?? '—'}</b></Typography>
+				<Typography>round数(num_of_r): <b>{myNumOfR ?? '—'}</b></Typography>
+				<Typography>この部屋の人数(num_of_s): <b>{roomCount}</b></Typography>
+				<Typography sx={{ mt: 1 }}>この部屋のメンバー:</Typography>
+				<Box component="ul" sx={{ listStyle: 'disc', pl: 4, m: 0 }}>
+					{(roomUsernames && roomUsernames.length > 0)
+						? roomUsernames.map((u) => <li key={u}>{u}</li>)
+						: <li style={{ listStyle: 'none', opacity: 0.7 }}>（まだメンバーがいません）</li>}
+				</Box>
+			</Box>
+
+			{/* 10分以内の名前のリスト（既存） */}
 			<Box
 				mt={4}
 				mb={4}
@@ -216,10 +284,7 @@ const Standby: React.FC = () => {
 			</Button>
 
 			{readyMsg && (
-				<Typography
-					sx={{ mt: 1 }}
-					color={readyState === 'error' ? 'error' : 'primary'}
-				>
+				<Typography sx={{ mt: 1 }} color={readyState === 'error' ? 'error' : 'primary'}>
 					{readyMsg}
 				</Typography>
 			)}
@@ -228,5 +293,3 @@ const Standby: React.FC = () => {
 };
 
 export default Standby;
-
-
