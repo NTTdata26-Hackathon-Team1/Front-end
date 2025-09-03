@@ -1,12 +1,14 @@
-import React, { useEffect, useState, useRef } from 'react'; // ★ useRefを使用
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
 type AnswerPair = { user_name: string; input_QA: string };
+type GetRoundResp = { ok: boolean; round?: number; error?: string };
 
 const containerStyle: React.CSSProperties = {
   textAlign: 'center',
   marginTop: '20px',
+  position: 'relative', // 左上バッジ用
 };
 
 const titleStyle: React.CSSProperties = {
@@ -56,7 +58,15 @@ const buttonStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-// ★ 追加: tab_id の取得ヘルパー（localStorage → sessionStorage → URL ?tab_id=）
+const roundBadgeStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 8,
+  left: 12,
+  fontWeight: 700,
+  color: '#333',
+};
+
+// tab_id 解決ヘルパー（localStorage → sessionStorage → URL ?tab_id=）
 function resolveTabId(): string | null {
   try {
     const ls = window.localStorage.getItem('tab_id') ?? window.localStorage.getItem('tabId');
@@ -81,30 +91,63 @@ function ParentSelectAnswer() {
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [deciding, setDeciding] = useState(false);
+
+  // round 表示用
+  const [round, setRound] = useState<number | null>(null);
+  const [roundLoading, setRoundLoading] = useState<boolean>(false);
+
   const navigate = useNavigate();
+  const navTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tabIdRef = useRef<string | null>(null);
 
-  const navTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // ★ 遷移用タイマー
-  const tabIdRef = useRef<string | null>(null); // ★ 追加: 取得した tab_id を保持
+  // 起動時に round を取得（main-api / get-round）
+  const fetchRound = async () => {
+    const tab_id = tabIdRef.current;
+    if (!tab_id) {
+      setErrMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
+      return;
+    }
+    setRoundLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke<GetRoundResp>('main-api', {
+        body: { method: 'get-round', params: { tab_id } },
+      });
+      if (error) {
+        setErrMsg(error.message ?? 'get-round の呼び出しに失敗しました');
+      } else if (!data?.ok || typeof data.round !== 'number') {
+        setErrMsg(data?.error ?? 'round の取得に失敗しました');
+      } else {
+        setRound(data.round);
+      }
+    } catch (e: any) {
+      setErrMsg(e?.message ?? 'round の取得に失敗しました（unknown error）');
+    } finally {
+      setRoundLoading(false);
+    }
+  };
 
+  // 起動時：候補の取得（main-api / list-parent-select-answers） & round 取得
   useEffect(() => {
     let cancelled = false;
-    tabIdRef.current = resolveTabId(); // ★ 追加: 初回に tab_id を確定
+    tabIdRef.current = resolveTabId();
+
+    // 左上 round 表示の初期化
+    fetchRound();
 
     (async () => {
       setLoading(true);
       setErrMsg(null);
       try {
-        const tab_id = tabIdRef.current; // ★ 追加
+        const tab_id = tabIdRef.current;
         if (!tab_id) {
           setErrMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
           setAnswers([]);
           return;
         }
 
-        // 候補の取得（★ 変更: tab_id をボディに渡す）
         const { data, error } = await supabase.functions.invoke<{ ok: boolean; answers?: AnswerPair[] }>(
-          'clever-handler',
-          { body: { method: 'list-parent-select-answers', tab_id } } // ★ 修正箇所
+          'main-api',
+          { body: { method: 'list-parent-select-answers', params: { tab_id } } }
         );
 
         if (cancelled) return;
@@ -125,10 +168,11 @@ function ParentSelectAnswer() {
 
     return () => {
       cancelled = true;
-      if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current); // ★ アンマウント時に必ずクリア
+      if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
     };
   }, []);
 
+  // 決定（main-api / mark-selected-answer）
   const handleDecide = async () => {
     if (selectedIndex === null || deciding) return;
     const target = answers[selectedIndex];
@@ -136,28 +180,29 @@ function ParentSelectAnswer() {
 
     setDeciding(true);
     setErrMsg(null);
-    let scheduled = false; // ★ 遷移予約フラグ
+    let scheduled = false;
 
     try {
-      // 選択確定（total_pt を +1）し、全クライアントへ「選出済み」シグナルを立てる
+      const currentRound = typeof round === 'number' ? round : 1;
+
       const { error } = await supabase.functions.invoke<{ ok: boolean }>(
-        'clever-handler',
+        'main-api',
         {
           body: {
             method: 'mark-selected-answer',
             params: {
               user_name: target.user_name,
               input_QA: target.input_QA,
-              round: 1, // ラウンド運用するならパラメタ化
-            }
-          }
+              round: currentRound,
+            },
+          },
         }
       );
 
       if (error) {
         setErrMsg(error.message ?? '決定に失敗しました');
       } else {
-        // ★ 2秒待ってから結果画面へ
+        // 2秒待ってから結果画面へ
         scheduled = true;
         navTimeoutRef.current = setTimeout(() => {
           navigate('/selectedanswer', { replace: true });
@@ -166,13 +211,17 @@ function ParentSelectAnswer() {
     } catch (e: any) {
       setErrMsg(e?.message ?? '決定に失敗しました（unknown error）');
     } finally {
-      // ★ 遷移予約済みならボタンはdisabledのまま
       if (!scheduled) setDeciding(false);
     }
   };
 
   return (
     <div style={containerStyle}>
+      {/* 左上：ラウンド表示 */}
+      <div style={roundBadgeStyle}>
+        第 {roundLoading ? '…' : (round ?? '—')} ターン
+      </div>
+
       <h2 style={titleStyle}>ベストな回答を選択してください</h2>
 
       {loading && <div style={{ marginBottom: 16 }}>読み込み中…</div>}
@@ -211,3 +260,4 @@ function ParentSelectAnswer() {
 }
 
 export default ParentSelectAnswer;
+

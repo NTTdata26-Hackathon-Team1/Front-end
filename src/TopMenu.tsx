@@ -12,23 +12,16 @@ export const getTabId = () => {
     }
     return id;
 };
-export const getDeviceId = () => {
-    let id = localStorage.getItem('device_id');
-    if (!id) {
-        id = crypto.randomUUID();
-        localStorage.setItem('device_id', id);
-    }
-    return id;
-};
 
-// ---- user_name の保存/取得ユーティリティ（追加） ----
+// ---- user_name の保存/取得ユーティリティ ----
 export const getUserName = () => sessionStorage.getItem('user_name') ?? '';
 export const setUserName = (name: string) => sessionStorage.setItem('user_name', name);
 
-type RoomItem = { name: string; num_of_s: number | null };
+// polling-api の返却に合わせて型を更新
+type RoomItem = { room_name: string; num_of_nowusers: number | null };
 
 const TopMenu: React.FC = () => {
-    // 入力（name は sessionStorage から復元するよう変更）
+    // 入力（name は sessionStorage から復元）
     const [name, setName] = useState<string>(() => getUserName());
     const [roomName, setRoomName] = useState('');
     const [rounds, setRounds] = useState('');
@@ -45,14 +38,12 @@ const TopMenu: React.FC = () => {
 
     const navigate = useNavigate();
     const tabId = useMemo(getTabId, []);
-    const deviceId = useMemo(getDeviceId, []);
     const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const POLL_MS = 5000;
 
     useEffect(() => {
         console.log('tab_id:', tabId);
-        console.log('device_id:', deviceId);
-    }, [tabId, deviceId]);
+    }, [tabId]);
 
     const isPositiveIntStr = (s: string) => {
         if (!s.trim()) return false;
@@ -70,9 +61,10 @@ const TopMenu: React.FC = () => {
     const fetchRoomsOnce = async () => {
         try {
             setRoomsErr(null);
-            const { data, error } = await supabase.functions.invoke<{ ok: boolean; rooms: RoomItem[] }>('swift-function', {
-                body: { action: 'list-rooms' }, // 引数なし
-            });
+            const { data, error } = await supabase.functions.invoke<{ ok: boolean; rooms: RoomItem[] }>(
+                'polling-api',
+                { body: { action: 'list-rooms' } }
+            );
             if (error) {
                 setRoomsErr(error.message ?? '部屋一覧の取得に失敗しました');
                 return;
@@ -120,17 +112,16 @@ const TopMenu: React.FC = () => {
             const { data: userData } = await supabase.auth.getUser();
             const userId = userData?.user?.id ?? null;
 
-            // 1) 部屋作成（swift-function）
-            const { data: roomData, error: roomErr } = await supabase.functions.invoke('swift-function', {
+            // 1) 部屋作成（only-once-api）
+            const { data: roomData, error: roomErr } = await supabase.functions.invoke('only-once-api', {
                 body: {
                     action: 'create-room',
-                    nickname: displayName,
+                    user_name: displayName,
                     room_name: roomNameTrimmed,
-                    round_count: roundsInt,
-                    player_count: playersInt,
+                    num_of_rounds: roundsInt,
+                    num_of_totalusers: playersInt,
                     user_id: userId,
                     tab_id: tabId,
-                    device_id: deviceId,
                 },
             });
 
@@ -144,26 +135,10 @@ const TopMenu: React.FC = () => {
                 return;
             }
 
-            // 2) dynamic-api にユーザー情報＋room_name を送信
-            const dynParams: Record<string, unknown> = {
-                user_name: displayName,
-                tab_id: tabId,
-                device_id: deviceId,
-                room_name: roomNameTrimmed,
-            };
-            if (userId) dynParams.user_id = userId;
-
-            const { data: dynData, error: dynErr } = await supabase.functions.invoke('dynamic-api', {
-                body: { action: 'save-user', params: dynParams },
-            });
-            if (dynErr || (dynData && (dynData as any).ok === false)) {
-                console.warn('dynamic-api save-user warn:', dynErr || dynData);
-            }
-
-            // ★ user_name を sessionStorage に保存（trim 済み）
+            // user_name を sessionStorage に保存（trim 済み）
             setUserName(displayName);
 
-            // 3) 常に standby へ遷移
+            // 2) standby へ遷移
             navigate('/standby');
         } catch (err: any) {
             console.error('invoke exception:', err);
@@ -185,82 +160,35 @@ const TopMenu: React.FC = () => {
         setErrorText(null);
 
         try {
-            const { data: userData } = await supabase.auth.getUser();
-            const userId = userData?.user?.id ?? null;
-
-            // 1) swift-function: num_of_s を +1
-            const { data: joinData, error: joinErr } = await supabase.functions.invoke('swift-function', {
-                body: { action: 'join-room', room_name: targetRoomName },
+            // main-api の join-room は user_name / tab_id / room_name を受け取る
+            const { data, error } = await supabase.functions.invoke('main-api', {
+                body: {
+                    action: 'join-room',
+                    user_name: displayName,
+                    tab_id: tabId,
+                    room_name: targetRoomName,
+                },
             });
-            if (joinErr || (joinData && (joinData as any).ok === false)) {
+
+            if (error || (data && (data as any).ok === false)) {
                 const msg =
-                    (joinData && ((joinData as any).error || (joinData as any).details || (joinData as any).message)) ||
-                    joinErr?.message ||
+                    (data && ((data as any).error || (data as any).details || (data as any).message)) ||
+                    error?.message ||
                     '部屋参加処理に失敗しました';
                 setErrorText(String(msg));
                 setJoining(null);
                 return;
             }
 
-            // 2) dynamic-api: User_list_test に保存
-            const dynParams: Record<string, unknown> = {
-                user_name: displayName,
-                tab_id: tabId,
-                device_id: deviceId,
-                room_name: targetRoomName,
-            };
-            if (userId) dynParams.user_id = userId;
-
-            const { data: dynData, error: dynErr } = await supabase.functions.invoke('dynamic-api', {
-                body: { action: 'join-room', params: dynParams },
-            });
-            if (dynErr || (dynData && (dynData as any).ok === false)) {
-                console.warn('dynamic-api join-room warn:', dynErr || dynData);
-            }
-
-            // ★ user_name を sessionStorage に保存（trim 済み）
+            // user_name を sessionStorage に保存（trim 済み）
             setUserName(displayName);
 
-            // 3) standby へ
+            // standby へ
             navigate('/standby');
         } catch (e: any) {
             setErrorText(e?.message ?? '部屋参加処理に失敗しました（unknown error）');
             setJoining(null);
         }
-    };
-
-    // （任意）デモ：このタブ宛に通知
-    const pingThisTabFromEdge = async () => {
-        const session = (await supabase.auth.getSession()).data.session;
-        const accessToken = session?.access_token;
-        const userId = (await supabase.auth.getUser()).data.user?.id;
-
-        if (!userId) {
-            alert('ユーザー未認証のため送信できません（デモ）');
-            return;
-        }
-
-        const { data, error } = await supabase.functions.invoke('dynamic-api', {
-            body: {
-                action: 'push-to-tab',
-                params: {
-                    target_user_id: userId,
-                    tab_id: tabId,
-                    type: 'notify',
-                    payload: { title: 'Hello Tab', body: 'これはこのタブ宛の通知です' },
-                },
-            },
-            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-        });
-
-        if (error) {
-            console.error('Edge Function error:', error);
-            alert('Edge Function 送信に失敗しました');
-            return;
-        }
-
-        console.log('Edge Function response:', data);
-        alert('Edge Function 送信リクエストを発行しました');
     };
 
     return (
@@ -342,18 +270,6 @@ const TopMenu: React.FC = () => {
                 </Typography>
             )}
 
-            {/* 任意：デモボタン */}
-            <Button variant="outlined" onClick={pingThisTabFromEdge} sx={{ mt: 3 }}>
-                このタブに Edge Function から通知を送る（デモ）
-            </Button>
-
-            {/* デバッグ表示 */}
-            <Box mt={3} sx={{ opacity: 0.7 }}>
-                <Typography variant="body2">tab_id: {tabId}</Typography>
-                <Typography variant="body2">device_id: {deviceId}</Typography>
-                <Typography variant="body2">user_name(sessionStorage): {getUserName()}</Typography>
-            </Box>
-
             {/* ===== 部屋に参加する（ボタン一覧） ===== */}
             <Box width="100%" maxWidth={520} mt={6}>
                 <Typography variant="h5" component="h2">
@@ -372,14 +288,18 @@ const TopMenu: React.FC = () => {
                     ) : (
                         rooms.map((r) => (
                             <Button
-                                key={`${r.name}`}
+                                key={r.room_name}
                                 variant="outlined"
-                                onClick={() => handleJoinRoom(r.name)}
-                                disabled={!name.trim() || joining === r.name}
+                                onClick={() => handleJoinRoom(r.room_name)}
+                                disabled={!name.trim() || joining === r.room_name}
                                 sx={{ display: 'flex', justifyContent: 'space-between', textTransform: 'none' }}
                             >
-                                <span>room name: <b>{r.name}</b></span>
-                                <span>人数: <b>{r.num_of_s ?? 0}</b></span>
+                                <span>
+                                    room name: <b>{r.room_name}</b>
+                                </span>
+                                <span>
+                                    人数: <b>{r.num_of_nowusers ?? 0}</b>
+                                </span>
                             </Button>
                         ))
                     )}
@@ -390,3 +310,4 @@ const TopMenu: React.FC = () => {
 };
 
 export default TopMenu;
+

@@ -7,9 +7,15 @@ const POLL_MS_ACTIVE = 2000;
 const POLL_MS_HIDDEN = 8000;
 
 type ReadyResp = { ok: boolean; ready: boolean };
+type GetRoundResp = { ok: boolean; round?: number; error?: string };
 
 const ChildWaiting: React.FC = () => {
     const [errMsg, setErrMsg] = useState<string | null>(null);
+
+    // ラウンド表示用
+    const [round, setRound] = useState<number | null>(null);
+    const [roundLoading, setRoundLoading] = useState<boolean>(false);
+
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const inFlightRef = useRef(false);
     const cancelledRef = useRef(false);
@@ -32,14 +38,20 @@ const ChildWaiting: React.FC = () => {
         setErrMsg(null);
 
         try {
-            const { data, error } = await supabase.functions.invoke<ReadyResp>('clever-handler', {
-                body: { method: 'is-topic-ready', params: { tab_id: sessionStorage.getItem("tab_id") ?? "" } }
-            });
+            const { data, error } = await supabase.functions.invoke<ReadyResp>(
+                'polling-api',
+                {
+                    body: {
+                        method: 'is-topic-ready',
+                        params: { tab_id: sessionStorage.getItem('tab_id') ?? '' },
+                    },
+                }
+            );
 
             if (cancelledRef.current || routedRef.current) return;
 
             if (error) {
-                setErrMsg(error.message ?? 'Edge Function error');
+                setErrMsg(error.message ?? 'polling-api error');
             } else if (data?.ok && data.ready) {
                 routedRef.current = true;
                 if (timerRef.current) clearTimeout(timerRef.current);
@@ -54,9 +66,39 @@ const ChildWaiting: React.FC = () => {
         }
     };
 
+    // 画面起動時：round を取得して左上に表示
+    const fetchRound = async () => {
+        const tab_id = sessionStorage.getItem('tab_id') ?? '';
+        if (!tab_id) {
+            setErrMsg('tab_id が見つかりません（前画面での保存を確認してください）');
+            return;
+        }
+        setRoundLoading(true);
+        try {
+            const { data, error } = await supabase.functions.invoke<GetRoundResp>(
+                'main-api',
+                {
+                    body: { method: 'get-round', params: { tab_id } },
+                }
+            );
+            if (error) {
+                setErrMsg(error.message ?? 'get-round の呼び出しに失敗しました');
+            } else if (!data?.ok || typeof data.round !== 'number') {
+                setErrMsg(data?.error ?? 'round の取得に失敗しました');
+            } else {
+                setRound(data.round);
+            }
+        } catch (e: any) {
+            setErrMsg(e?.message ?? 'round の取得に失敗しました（unknown error）');
+        } finally {
+            setRoundLoading(false);
+        }
+    };
+
     useEffect(() => {
         cancelledRef.current = false;
-        pollOnce();
+        fetchRound(); // ラウンド表示の初期化
+        pollOnce();   // 親のお題準備完了のポーリング開始
 
         const onVis = () => {
             if (!cancelledRef.current && !routedRef.current) {
@@ -80,7 +122,15 @@ const ChildWaiting: React.FC = () => {
             alignItems="center"
             justifyContent="center"
             mt={8}
+            sx={{ position: 'relative', width: '100%' }}
         >
+            {/* 左上のラウンド表示 */}
+            <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    第 {roundLoading ? '…' : (round ?? '—')} ターン
+                </Typography>
+            </Box>
+
             <Typography variant="h4" gutterBottom>
                 お題の入力を待っています
             </Typography>
@@ -89,11 +139,12 @@ const ChildWaiting: React.FC = () => {
             </Typography>
             <CircularProgress size={80} />
             {errMsg && (
-                <Typography color="error" sx={{ mt: 2 }}>{errMsg}</Typography>
+                <Typography color="error" sx={{ mt: 2 }}>
+                    {errMsg}
+                </Typography>
             )}
         </Box>
     );
 };
 
 export default ChildWaiting;
-

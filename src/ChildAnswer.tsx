@@ -4,37 +4,81 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 
 // sessionStorage から取得（TopMenu で保存済み想定）
-const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
-const getUserName = () => sessionStorage.getItem("user_name") ?? "";
+const getTabId = () => sessionStorage.getItem('tab_id') ?? '';
 
 const ChildAnswer: React.FC = () => {
-    const [topic, setTopic] = useState<string | null>(null);     // 取得したお題
+    const [topic, setTopic] = useState<string | null>(null); // 取得したお題
     const [answer, setAnswer] = useState('');
     const [sending, setSending] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    // お題のロード状態
     const [loadingTopic, setLoadingTopic] = useState(true);
+
+    // ラウンド表示用
+    const [round, setRound] = useState<number | null>(null);
+    const [roundLoading, setRoundLoading] = useState<boolean>(false);
 
     const navigate = useNavigate();
 
-    // 起動時にお題を取得
+    // 起動時にお題＆ラウンドを取得（main-api）
     useEffect(() => {
         let cancelled = false;
+        const tab_id = getTabId();
+
+        if (!tab_id) {
+            setErrorMsg('tab_id が見つかりません（前画面での保存を確認してください）');
+            setLoadingTopic(false);
+            setRoundLoading(false);
+            return () => { cancelled = true; };
+        }
+
+        // ラウンド
+        (async () => {
+            setRoundLoading(true);
+            try {
+                const { data, error } = await supabase.functions.invoke<{
+                    ok: boolean;
+                    round?: number;
+                    error?: string;
+                }>('main-api', {
+                    body: { action: 'get-round', params: { tab_id } },
+                });
+                if (cancelled) return;
+
+                if (error) {
+                    setErrorMsg(error.message ?? 'ラウンド情報の取得に失敗しました');
+                } else if (!data?.ok || typeof data.round !== 'number') {
+                    setErrorMsg(data?.error ?? 'ラウンド情報の取得に失敗しました');
+                } else {
+                    setRound(data.round);
+                }
+            } catch (e: any) {
+                if (!cancelled) setErrorMsg(e?.message ?? 'ラウンド情報の取得に失敗しました（unknown error）');
+            } finally {
+                if (!cancelled) setRoundLoading(false);
+            }
+        })();
+
+        // お題
         (async () => {
             setLoadingTopic(true);
-            setErrorMsg(null);
             try {
-                const { data, error } = await supabase.functions.invoke<{ ok: boolean; topic?: string }>('clever-handler', {
-                    body: { method: 'get-current-topic' },   // 引数なし
+                const { data, error } = await supabase.functions.invoke<{
+                    ok: boolean;
+                    topic?: string | null;
+                    error?: string;
+                }>('main-api', {
+                    body: { action: 'get-current-topic', params: { tab_id } },
                 });
                 if (cancelled) return;
 
                 if (error) {
                     setErrorMsg(error.message ?? 'お題の取得に失敗しました');
-                } else if (data?.ok && typeof data.topic === 'string' && data.topic.length > 0) {
-                    setTopic(data.topic);
+                } else if (!data?.ok) {
+                    setErrorMsg(data?.error ?? 'お題の取得に失敗しました');
                 } else {
-                    // お題がまだ用意されていない場合
-                    setTopic(null);
+                    setTopic(typeof data.topic === 'string' && data.topic.length > 0 ? data.topic : null);
                 }
             } catch (e: any) {
                 if (!cancelled) setErrorMsg(e?.message ?? 'お題の取得に失敗しました（unknown error）');
@@ -42,46 +86,72 @@ const ChildAnswer: React.FC = () => {
                 if (!cancelled) setLoadingTopic(false);
             }
         })();
-        return () => { cancelled = true; };
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!answer.trim() || sending) return;
 
+        const tab_id = getTabId();
+        if (!tab_id) {
+            setErrorMsg('tab_id が見つかりません（前画面での保存を確認してください）');
+            return;
+        }
+
         setSending(true);
         setErrorMsg(null);
 
         try {
-            const { data, error } = await supabase.functions.invoke('clever-handler', {
+            // main-api: submit-answer（tab_id と txt のみ）
+            const { data, error } = await supabase.functions.invoke<{
+                ok: boolean;
+                row?: any;
+                updated?: boolean;
+                error?: string;
+            }>('main-api', {
                 body: {
-                    method: 'submit-answer',
+                    action: 'submit-answer',
                     params: {
+                        tab_id,
                         txt: answer.trim(),
-                        tab_id: getTabId(),
-                        user_name: getUserName(),
                     },
                 },
             });
 
             if (error) {
-                console.error("Edge Function Error:", error);
-                setErrorMsg(error.message ?? "送信に失敗しました");
+                setErrorMsg(error.message ?? '送信に失敗しました');
+            } else if (!data?.ok) {
+                setErrorMsg(data?.error ?? '送信に失敗しました');
             } else {
-                console.log("送信成功:", data);
                 // ✅ 送信成功時に一覧ページへ
                 navigate('/childanswerlist');
             }
         } catch (err: any) {
-            console.error("invoke error:", err);
-            setErrorMsg(err?.message ?? "送信エラー");
+            setErrorMsg(err?.message ?? '送信エラー');
         } finally {
             setSending(false);
         }
     };
 
     return (
-        <Box display="flex" flexDirection="column" alignItems="center" mt={8}>
+        <Box
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            mt={8}
+            sx={{ position: 'relative', width: '100%' }}
+        >
+            {/* 左上：ラウンド表示 */}
+            <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    第 {roundLoading ? '…' : (round ?? '—')} ターン
+                </Typography>
+            </Box>
+
             <Typography variant="h4" component="h1" gutterBottom>
                 {loadingTopic
                     ? 'お題を取得中…'
@@ -106,7 +176,7 @@ const ChildAnswer: React.FC = () => {
                     label="解答入力欄"
                     variant="outlined"
                     value={answer}
-                    onChange={e => setAnswer(e.target.value)}
+                    onChange={(e) => setAnswer(e.target.value)}
                 />
                 <Button
                     type="submit"
@@ -114,7 +184,7 @@ const ChildAnswer: React.FC = () => {
                     disabled={!answer.trim() || sending}
                     color="primary"
                 >
-                    {sending ? "送信中…" : "送信"}
+                    {sending ? '送信中…' : '送信'}
                 </Button>
             </Box>
 

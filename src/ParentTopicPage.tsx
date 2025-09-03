@@ -5,48 +5,41 @@ import { supabase } from './supabaseClient';
 
 // sessionStorage から引き継ぎ
 const getTabId = () => sessionStorage.getItem('tab_id') ?? '';
-const getUserName = () => sessionStorage.getItem('user_name') ?? '';
 
-type InitRoundResp = { ok: boolean; round?: number; error?: string };
+type GetRoundResp = { ok: boolean; round?: number; error?: string };
+type SubmitTopicResp = { ok: boolean; row?: any; error?: string };
 
 const ParentTopicPage: React.FC = () => {
     const [topic, setTopic] = useState('');
     const [sending, setSending] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
-    // ← 追加: ラウンド表示用
+    // 左上：ラウンド表示
     const [round, setRound] = useState<number | null>(null);
     const [roundLoading, setRoundLoading] = useState<boolean>(false);
 
     const navigate = useNavigate();
 
-    // 画面起動時に round を取得して左上に表示
+    // ページ起動時：main-api の get-round を呼んで round を取得して表示
     useEffect(() => {
-        const boot = async () => {
+        const fetchRound = async () => {
             const tab_id = getTabId();
-            const user_name = getUserName();
-            if (!tab_id || !user_name) {
-                setErr('tab_id もしくは user_name が見つかりません（前画面での保存を確認してください）');
+            if (!tab_id) {
+                setErr('tab_id が見つかりません（前画面での保存を確認してください）');
                 return;
             }
             setRoundLoading(true);
             setErr(null);
             try {
-                const { data, error } = await supabase.functions.invoke<InitRoundResp>('clever-handler', {
-                    body: {
-                        method: 'init-round',
-                        tab_id,
-                        user_name,
-                    },
+                const { data, error } = await supabase.functions.invoke<GetRoundResp>('main-api', {
+                    body: { action: 'get-round', tab_id },
                 });
                 if (error) {
                     setErr(error.message ?? 'ラウンド情報の取得に失敗しました');
-                    setRoundLoading(false);
                     return;
                 }
                 if (!data?.ok || typeof data.round !== 'number') {
                     setErr((data as any)?.error ?? 'ラウンド情報の取得に失敗しました');
-                    setRoundLoading(false);
                     return;
                 }
                 setRound(data.round);
@@ -56,7 +49,7 @@ const ParentTopicPage: React.FC = () => {
                 setRoundLoading(false);
             }
         };
-        boot();
+        fetchRound();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -65,10 +58,8 @@ const ParentTopicPage: React.FC = () => {
         if (!txt || sending) return;
 
         const tab_id = getTabId();
-        const user_name = getUserName();
-
-        if (!tab_id || !user_name) {
-            setErr('tab_id もしくは user_name が見つかりません（前画面での保存を確認してください）');
+        if (!tab_id) {
+            setErr('tab_id が見つかりません（前画面での保存を確認してください）');
             return;
         }
 
@@ -76,14 +67,12 @@ const ParentTopicPage: React.FC = () => {
         setErr(null);
 
         try {
-            // Edge Function: clever-handler を呼ぶ
-            const { data, error } = await supabase.functions.invoke('clever-handler', {
+            // ← 変更点：main-api の submit-topic を呼ぶ（txt と tab_id のみ必要）
+            const { data, error } = await supabase.functions.invoke<SubmitTopicResp>('main-api', {
                 body: {
-                    method: 'submit-topic',
-                    // 単純化："txt" と一緒に tab_id / user_name も渡す
+                    action: 'submit-topic',
                     txt,
                     tab_id,
-                    user_name,
                 },
             });
 
@@ -92,8 +81,13 @@ const ParentTopicPage: React.FC = () => {
                 setSending(false);
                 return;
             }
+            if (!data?.ok) {
+                setErr(data?.error ?? '送信に失敗しました');
+                setSending(false);
+                return;
+            }
 
-            // 成功したら次の画面へ（お好みで変更）
+            // 成功したら次の画面へ
             navigate('/parentwaiting', { state: { topic: txt } });
         } catch (e: any) {
             setErr(e?.message ?? '予期せぬエラーが発生しました');
@@ -102,8 +96,14 @@ const ParentTopicPage: React.FC = () => {
     };
 
     return (
-        <Box display="flex" flexDirection="column" alignItems="center" mt={8} sx={{ position: 'relative', width: '100%' }}>
-            {/* 画面左上表示 */}
+        <Box
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            mt={8}
+            sx={{ position: 'relative', width: '100%' }}
+        >
+            {/* 画面左上表示：ラウンド */}
             <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                     第 {roundLoading ? '…' : (round ?? '—')} ターン
@@ -129,7 +129,7 @@ const ParentTopicPage: React.FC = () => {
                     label="お題入力欄"
                     variant="outlined"
                     value={topic}
-                    onChange={e => setTopic(e.target.value)}
+                    onChange={(e) => setTopic(e.target.value)}
                 />
                 <Button
                     type="submit"
@@ -151,3 +151,4 @@ const ParentTopicPage: React.FC = () => {
 };
 
 export default ParentTopicPage;
+
