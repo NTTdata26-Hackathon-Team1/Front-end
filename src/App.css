@@ -1,6 +1,45 @@
 .App {
   text-align: center;
 }
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* レトロ背景を全体に適用 */
+body, .retro-bg {
+    background: #141241;
+    min-height: 100vh;
+    width: 100vw;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', cursive, sans-serif;
+    color: #fff;
+}
+
+/* 土の地面画像 */
+.ground-soil {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 140px;
+    display: flex;
+    overflow: hidden;
+    z-index: 1;
+    background: none;
+}
+.soil-img {
+    width: 100px;
+    height: 140px;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.App {
+    text-align: center;
+}
 
 .App-logo {
   height: 40vmin;
@@ -13,16 +52,6 @@
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
 
 .App-link {
   color: #61dafb;

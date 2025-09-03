@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Typography, TextField, Button, Box } from '@mui/material';
+import { Typography, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import './TopMenu.css';
 
 // ---- ID ユーティリティ ----
 // タブ単位（同タブ内の画面遷移やリロードで維持。タブを閉じると消える）
@@ -99,7 +100,6 @@ const TopMenu: React.FC = () => {
             // 通常は自動付与されますが、明示したい場合はヘッダも渡せます
             headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
-
         if (error) {
             console.error('Edge Function error:', error);
             alert('Edge Function 送信に失敗しました');
@@ -111,22 +111,30 @@ const TopMenu: React.FC = () => {
     };
 
     return (
-        <Box display="flex" flexDirection="column" alignItems="center" mt={8}>
-            <Typography variant="h2" component="h1" gutterBottom>
-                朝までそれ正解
-            </Typography>
+        <div className="topmenu-bg">
+            {/* 雲 */}
+            <img src="/pixel_cloud_transparent.png" alt="cloud" className="cloud-img cloud-left-up" />
+            <img src="/pixel_cloud_transparent.png" alt="cloud" className="cloud-img cloud-right-up" />
+            <img src="/pixel_cloud_transparent.png" alt="cloud" className="cloud-img cloud-title-left" />
+            <img src="/pixel_cloud_transparent.png" alt="cloud" className="cloud-img cloud-title-right" />
 
-            <Box component="form" onSubmit={handleSubmit} display="flex" alignItems="center" gap={2} mt={4}>
-                <TextField
-                    label="ニックネーム"
-                    variant="outlined"
+            {/* タイトル */}
+            <h1 className="topmenu-title">朝までそれ正解</h1>
+            <h2 className="topmenu-subtitle">ASAMADE SORE SEIKAI</h2>
+
+            {/* 入力フォーム */}
+            <form className="topmenu-form" onSubmit={handleSubmit}>
+                <input
+                    className="topmenu-input"
+                    type="text"
+                    placeholder="ニックネームを入力"
                     value={name}
                     onChange={e => setName(e.target.value)}
                 />
-                <Button type="submit" variant="contained" disabled={!name.trim() || submitting} color="primary">
-                    送信
-                </Button>
-            </Box>
+                <button className="topmenu-start-btn" type="submit" disabled={!name.trim() || submitting}>
+                    START
+                </button>
+            </form>
 
             {errorText && <Typography color="error" mt={2}>{errorText}</Typography>}
 
@@ -140,9 +148,19 @@ const TopMenu: React.FC = () => {
                 <Typography variant="body2">tab_id: {tabId}</Typography>
                 <Typography variant="body2">device_id: {deviceId}</Typography>
             </Box>
-        </Box>
+
+            {/* 下部イラスト */}
+            <div className="topmenu-bottom">
+                <img src="/pixel_flower.png" alt="flower" className="bottom-img flower-left" />
+                <img src="/pixel_mushroom.png" alt="mushroom" className="bottom-img mushroom-left" />
+                <img src="/pixel_flag.png" alt="flag" className="bottom-img flag-left" />
+                <img src="/pixel_flag.png" alt="flag" className="bottom-img flag-right" />
+                <img src="/pixel_mushroom.png" alt="mushroom" className="bottom-img mushroom-right" />
+                <img src="/pixel_flower.png" alt="flower" className="bottom-img flower-right" />
+            </div>
+
+        </div>
     );
 };
 
 export default TopMenu;
-
