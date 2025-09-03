@@ -10,40 +10,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    font-family: 'Press Start 2P', cursive, sans-serif;
 }
 
 /* 雲の位置・サイズ */
-.cloud-left-up {
-    position: absolute;
-    left: 10vw;
-    top: 2vw;
-    width: 18vw;
-    height: 8vw;
-}
-.cloud-right-up {
-    position: absolute;
-    right: 10vw;
-    top: 2vw;
-    width: 18vw;
-    height: 8vw;
-    transform: scaleX(-1);
-}
-.cloud-title-left {
-    position: absolute;
-    left: 0vw;
-    top: 8vw;
-    width: 20vw;
-    height: 10vw;
-}
-.cloud-title-right {
-    position: absolute;
-    right: 0vw;
-    top: 8vw;
-    width: 20vw;
-    height: 10vw;
-    transform: scaleX(-1);
-}
+.cloud-left-up {position: absolute;left: 10vw;top: 2vw;width: 18vw;height: 8vw;}
+.cloud-right-up {position: absolute;right: 10vw;top: 2vw;width: 18vw;height: 8vw;transform: scaleX(-1);}
+.cloud-title-left {position: absolute;left: 0vw;top: 8vw;width: 20vw;height: 10vw;}
+.cloud-title-right {position: absolute;right: 0vw;top: 8vw;width: 20vw;height: 10vw;transform: scaleX(-1);}
 
 /* タイトル */
 .topmenu-title {
@@ -187,70 +160,21 @@
 }
 
 /* レスポンシブ調整 */
-@media (max-width: 500px) {
-    .cloud-left-up,
-    .cloud-right-up {
-        width: 28vw;
-        height: 12vw;
-        left: 2vw;
-        right: 2vw;
-        top: 2vw;
-    }
+@media (max-width: 500px) {.cloud-left-up,.cloud-right-up {width: 28vw;height: 12vw;left: 2vw;right: 2vw;top: 2vw;}
     .cloud-title-left,
-    .cloud-title-right {
-        width: 40vw;
-        height: 14vw;
-        top: 14vw;
-    }
-    .topmenu-title {
-        font-size: 10vw;
-        margin-top: 14vw;
-    }
-    .topmenu-subtitle {
-        font-size: 5vw;
-        margin: 4vw 0 6vw 0;
-    }
-    .topmenu-form {
-        gap: 4vw;
-        margin-top: 8vw;
-    }
-    .topmenu-input {
-        width: 80vw;
-        font-size: 4vw;
-        padding: 3vw;
-        border-radius: 2vw;
-    }
-    .topmenu-start-btn {
-        font-size: 6vw;
-        padding: 2vw 10vw;
-        border-radius: 4vw;
-        margin-bottom: 4vw;
-        border: 0.5vw solid #fff;
-    }
-    .topmenu-bottom {
-        height: 12vw;
-        padding: 0 2vw;
-    }
+    .cloud-title-right {width: 40vw;height: 14vw;top: 14vw;}
+    .topmenu-title {font-size: 10vw;margin-top: 14vw;}
+    .topmenu-subtitle {font-size: 5vw; margin: 4vw 0 6vw 0;}
+    .topmenu-form {gap: 4vw;margin-top: 8vw;}
+    .topmenu-input {width: 80vw;font-size: 4vw;padding: 3vw;border-radius: 2vw;}
+    .topmenu-start-btn {font-size: 6vw;padding: 2vw 10vw;border-radius: 4vw;margin-bottom: 4vw;border: 0.5vw solid #fff;}
+    .topmenu-bottom { height: 12vw;padding: 0 2vw}
     .flower-left,
-    .flower-right {
-        height: 12vw;
-    }
-    .bottom-center-group {
-        gap: 4vw;
-        margin-left: 4vw;
-        margin-right: 4vw;
-    }
+    .flower-right {height: 12vw;}
+    .bottom-center-group {gap: 4vw;margin-left: 4vw;margin-right: 4vw;}
     .flag-left, .flag-right,
-    .mushroom-left, .mushroom-right {
-        height: 12vw;
-    }
-    .ground-soil {
-        height: 8vw;
-    }
-    .soil-img {
-        width: 8vw;
-        height: 8vw;
-    }
-}
+    .mushroom-left, .mushroom-right { height: 12vw;}
+    .ground-soil {height: 8vw;}
+    .soil-img {width: 8vw;height: 8vw;}}
 
 

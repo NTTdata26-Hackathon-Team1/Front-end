@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+.standby-bg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 雲 */
+.standby-cloud {position: absolute;width: 16vw;height: 7vw;top: 3vw;.standby-ready-msg {font-size: 2vw;margin-top: 1vw;text-align: center;font-weight: bold;}}
+.standby-cloud.left { left: 35vw; top: 4vw; width: 5vw; height: 5vw; }
+.standby-cloud.right { right: 35vw; top: 4vw; width: 5vw; height: 5vw; transform: scaleX(-1); }
+.standby-cloud.center1 { left: 18vw; top: 8vw; width: 10vw; height: 6vw; }
+.standby-cloud.center2 { right: 18vw; top: 8vw; width: 10vw; height: 6vw; transform: scaleX(-1); }
+/* 塔と木の配置 */
+.standby-tower-left {position: absolute; left: 1vw; bottom: 6vw;width: 20vw;height: 50vw;z-index: 0;transform: scaleX(-1)}
+.standby-tower-right {position: absolute;right: 1vw;bottom: 6vw;width: 20vw;height: 50vw;z-index: 0;}
+.standby-tree-left {position: absolute; left: 23vw; bottom: 6vw; width: 12vw; height: 12vw; z-index: 0;}
+.standby-tree-right {position: absolute; right: 23vw; bottom: 6vw; width: 12vw; height: 12vw; z-index: 0; transform: scaleX(-1);}
+
+.standby-title {
+  color: #fff;
+  font-size: 5vw;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  text-shadow: 0.5vw 0.5vw 0 #ff69b4, 1vw 1vw 0 #181848;
+  margin-top: 1vw;
+  margin-bottom: 0;
+  text-align: center;
+  width: 100%;
+}
+.standby-subtitle {
+  color: #fff;
+  font-size: 2vw;
+  text-shadow: 0.3vw 0.3vw 0 #ff69b4;
+  margin: 1vw 0 2vw 0;
+  text-align: center;
+  width: 100%;
+}
+
+/* 中央の枠 */
+.standby-center-box {
+  margin: 1vw auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 36vw;
+  min-width: 300px;
+  max-width: 500px;
+  min-height: 350px;
+  background: #0f8f1e;
+  box-shadow: 0 0.5vw #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.standby-user-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 2vw;
+  color: #fff;
+  font-family: 'Press Start 2P', cursive, sans-serif;
+  text-align: center;
+}
+.standby-no-user {
+  font-size: 1.5vw;
+}
+
+/* スタートボタン */
+.standby-start-btn {
+  background: #c54c89;
+  color: #fff;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 2vw;
+  padding: 1vw 5vw;
+  border-radius: 2vw;
+  box-shadow: 0 0.5vw #333;
+  border: 0.3vw solid #fff;
+  letter-spacing: 2px;
+  cursor: pointer;
+  margin-top: 2vw;
+  margin-bottom: 2vw;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  font-weight: bold;
+}
+.standby-start-btn:disabled {
+  background: #aaa;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+/* 地面風装飾（仮） */
+.standby-ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 6vw;
+  background: #a0522d;
+}
+
+/* 準備完了メッセージ */
+.standby-ready-msg {
+  font-size: 1vw; /* お好みのサイズに変更可能 */
+  margin-top: -1vw;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 500px) {
+    .standby-title { font-size: 10vw; margin-top: 10vw; }
+    .standby-subtitle { font-size: 4vw; }
+    .standby-center-box { width: 80vw; height: 40vw; min-width: 180px; min-height: 120px; }
+    .standby-user-list { font-size: 4vw; }
+    .standby-start-btn { font-size: 5vw; padding: 2vw 10vw; border-radius: 4vw; }
+    .standby-ground { height: 10vw; }
+}

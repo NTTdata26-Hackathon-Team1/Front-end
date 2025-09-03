@@ -1,0 +1,104 @@
+.parenttopick-bg {
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+}
+
+.parenttopick-title {
+  color: #fff;
+  font-size: 5vw;
+  font-weight: bold;
+  text-shadow: 0.5vw 0.5vw 0 #ff69b4, 1vw 1vw 0 #181848;
+  margin-top: 6vw;
+  margin-bottom: 2vw;
+  text-align: center;
+}
+
+.parenttopick-subtitle {
+  color: #fff;
+  font-size: 1.2vw;
+  text-shadow: 0.3vw 0.3vw 0 #ff69b4;
+  margin-bottom: 3vw;
+  text-align: right;
+  letter-spacing: 0.2em;
+  position: absolute;
+  top: 2%;
+  right: 1vw;
+}
+
+.parenttopick-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2vw;
+  margin-bottom: 10vw;
+  margin-top: 4vw;
+  z-index: 2;
+}
+
+.parenttopick-input {
+  font-size: 2vw;
+  padding: 1vw 2vw;
+  border-radius: 1vw;
+  border: none;
+  background: #ccc;
+  color: #222;
+  width: 50vw;
+  max-width: 700px;
+  text-align: center;
+}
+
+.parenttopick-btn {
+  background: #ff69b4;
+  color: #fff;
+  font-size: 2vw;
+  border-radius: 2vw;
+  border: 0.3vw solid #fff;
+  padding: 1vw 4vw;
+  font-weight: bold;
+  box-shadow: 0 0.5vw #333;
+  cursor: pointer;
+  letter-spacing: 2px;
+}
+.parenttopick-btn:disabled {
+  background: #aaa;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+
+/* 雲 */
+.parenttopick-cloud {position: absolute;width: 16vw;height: 7vw;z-index: 2;}
+.parenttopick-cloud.left { left: -1vw; top: 2vw; width: 10vw; height: 10vw; }
+.parenttopick-cloud.right2 { right: 13vw; top: 7vw; width: 8vw; height: 8vw; transform: scaleX(-1); }
+.parenttopick-cloud.left2 { left: 6vw; top: 10vw; width: 12vw; height: 8vw; }
+.parenttopick-cloud.right3 { right: 4vw; top: 18vw; width: 5vw; height: 5vw; transform: scaleX(-1); }
+.parenttopick-cloud.left3 { left: 1vw; top: 20vw; width: 5vw; height: 3vw; }
+
+/* キャラクター */
+.parenttopick-character {position: absolute; left: 12vw; bottom: 6vw; width: 13vw; height: 20vw; z-index: 2;}
+
+/* ひまわり */
+.parenttopick-sunflower {position: absolute;width: 13vw;height: 13vw;bottom: 6vw;left: -3vw;z-index: 1;}
+
+/* 火 */
+.parenttopick-fire-row {display: flex;gap: 5vw;position: absolute;left: 30vw;bottom: 10vw;z-index: 2;}
+.parenttopick-fire {width: 12vw; height: auto;}
+
+/* 木盆栽 */
+.parenttopick-tree-bonsai {position: absolute;width: 20vw;height: 20vw;right: 2vw;bottom: 6vw;z-index: 2;}
+
+
+.parenttopick-ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 6vw;
+  background: #a0522d;
+  z-index: 1;
+}

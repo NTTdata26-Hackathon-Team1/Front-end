@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button } from '@mui/material';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import './Standby.css';
 
 type UsernameRow = { user_name: string };
 
@@ -29,7 +29,6 @@ const getTabIdFromSession = () => sessionStorage.getItem('tab_id') ?? null;
 const getUserNameFromSession = () => sessionStorage.getItem('user_name') ?? null;
 
 const Standby: React.FC = () => {
-	const [calling, setCalling] = useState(false);
 	const [errMsg, setErrMsg] = useState<string | null>(null);
 	const [usernames, setUsernames] = useState<string[]>([]);
 
@@ -168,62 +167,60 @@ const Standby: React.FC = () => {
 	}, []);
 
 	return (
-		<Box display="flex" flexDirection="column" alignItems="center" mt={8}>
-			<Typography variant="h2" component="h1" gutterBottom>
-				朝までそれ正解
-			</Typography>
+		<div className="standby-bg">
+			{/* 塔と木（左右） */}
+			<img src="/pixel_tower.png" alt="tower" className="standby-tower-left" />
+			<img src="/pixel_tower.png" alt="tower" className="standby-tower-right" />
+			<img src="/pixel_tree.png" alt="tree" className="standby-tree-left" />
+			<img src="/pixel_tree.png" alt="tree" className="standby-tree-right" />
 
+			{/* 雲（個別配置） */}
+			<img src="/pixel_cloud_transparent.png" alt="cloud" className="standby-cloud left" />
+			<img src="/pixel_cloud_transparent.png" alt="cloud" className="standby-cloud right" />
+			<img src="/pixel_cloud_transparent.png" alt="cloud" className="standby-cloud center1" />
+			<img src="/pixel_cloud_transparent.png" alt="cloud" className="standby-cloud center2" />
+
+			{/* タイトル・サブタイトル */}
+			<h1 className="standby-title">朝までそれ正解</h1>
+			<h2 className="standby-subtitle">ASAMADESORE SEIKAI</h2>
+
+			{/* エラー表示 */}
 			{errMsg && (
-				<Typography color="error" sx={{ mt: 1 }}>
-					{errMsg}
-				</Typography>
+				<div style={{ color: '#ff3333', marginTop: '1vw', textAlign: 'center', fontWeight: 'bold' }}>{errMsg}</div>
 			)}
 
-			<Box
-				mt={4}
-				mb={4}
-				width={400}
-				height={300}
-				display="flex"
-				flexDirection="column"
-				alignItems="center"
-				justifyContent="center"
-				bgcolor="#ccc"
-				border="1px solid #888"
-			>
-				<Typography variant="h5" component="div" fontStyle="italic" mb={2}>
-					10分以内の名前のリスト
-				</Typography>
-
-				<Box component="ul" sx={{ listStyle: 'disc', pl: 4, fontSize: '1.5rem', fontStyle: 'italic', m: 0 }}>
+			{/* 中央の枠（ユーザーリスト） */}
+			<div className="standby-center-box">
+				<ul className="standby-user-list">
 					{usernames.length > 0 ? (
 						usernames.map((name) => <li key={name}>{name}</li>)
 					) : (
-						<li style={{ listStyle: 'none', fontStyle: 'normal', opacity: 0.8 }}>
+						<li className="standby-no-user" style={{ opacity: 0.8 }}>
 							（10分以内のユーザーなし）
 						</li>
 					)}
-				</Box>
-			</Box>
+				</ul>
+			</div>
 
-			<Button
-				variant="outlined"
-				sx={{ width: 120, fontSize: '1.2rem' }}
+			{/* スタートボタン（準備完了） */}
+			<button
+				className="standby-start-btn"
 				onClick={handleReadyClick}
 				disabled={readyState === 'sending' || readyState === 'done'}
 			>
-				{readyState === 'sending' ? '送信中…' : readyState === 'done' ? '送信済み' : '準備完了'}
-			</Button>
+				{readyState === 'sending' ? '送信中…' : readyState === 'done' ? '送信済み' : 'REDY'}
+			</button>
 
+			{/* 準備完了メッセージ */}
 			{readyMsg && (
-				<Typography
-					sx={{ mt: 1 }}
-					color={readyState === 'error' ? 'error' : 'primary'}
-				>
+				<div className="standby-ready-msg" style={{ color: readyState === 'error' ? '#ff3333' : '#1e9c52' }}>
 					{readyMsg}
-				</Typography>
+				</div>
 			)}
-		</Box>
+
+			{/* 地面風 */}
+			<div className="standby-ground"></div>
+		</div>
 	);
 };
 
