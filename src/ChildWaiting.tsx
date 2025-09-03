@@ -33,7 +33,7 @@ const ChildWaiting: React.FC = () => {
 
         try {
             const { data, error } = await supabase.functions.invoke<ReadyResp>('clever-handler', {
-                body: { method: 'is-topic-ready' } // 引数なし指定
+                body: { method: 'is-topic-ready', params: { tab_id: sessionStorage.getItem("tab_id") ?? "" } }
             });
 
             if (cancelledRef.current || routedRef.current) return;

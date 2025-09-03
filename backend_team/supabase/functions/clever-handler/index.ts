@@ -90,15 +90,13 @@ const handlers = {
                 ascending: false,
                 nullsFirst: false
             }).limit(1);
-            if (lastErr) {
-                return json({
-                    ok: false,
-                    error: lastErr.message ?? "DB select failed (dynamic_user_info max round by room)"
-                }, 200);
-            }
+            if (lastErr) return json({
+                ok: false,
+                error: lastErr.message ?? "DB select failed (dynamic_user_info max round by room)"
+            }, 200);
             roomMax = lastRows && lastRows[0] && typeof lastRows[0].round === "number" ? lastRows[0].round : 0;
         }
-        // 4) 自分の最新 round を確認（等幹ポイント1）
+        // 4) 自分の最新 round を確認
         const { data: myLastRows, error: myLastErr } = await supabase.from("dynamic_user_info").select("round").eq("tab_id", tab_id).order("created_at", {
             ascending: false
         }).limit(1);
@@ -107,12 +105,10 @@ const handlers = {
             error: myLastErr.message ?? "DB select failed (dynamic_user_info my last)"
         }, 200);
         const myLast = myLastRows && myLastRows[0] && typeof myLastRows[0].round === "number" ? myLastRows[0].round : null;
-        if (myLast !== null && myLast === roomMax && roomMax > 0) {
-            return json({
-                ok: true,
-                round: roomMax
-            }, 200);
-        }
+        if (myLast !== null && myLast === roomMax && roomMax > 0) return json({
+            ok: true,
+            round: roomMax
+        }, 200);
         // 5) 次のラウンド
         const nextRound = roomMax + 1;
         const host = N > 0 ? nextRound % N === n : false;
@@ -122,13 +118,11 @@ const handlers = {
             ok: false,
             error: dupErr.message ?? "DB select failed (dup check)"
         }, 200);
-        if (dupRows && dupRows.length > 0) {
-            return json({
-                ok: true,
-                round: nextRound
-            }, 200);
-        }
-        // 6) 挿入
+        if (dupRows && dupRows.length > 0) return json({
+            ok: true,
+            round: nextRound
+        }, 200);
+        // 6) 挿入（schema に合わせて必要最小限）
         const payload = {
             id: crypto.randomUUID(),
             tab_id,
@@ -152,21 +146,16 @@ const handlers = {
     },
   /**
    * 親: お題を保存（更新版）
-   * - params: { txt: string, tab_id: string }
-   * - dynamic_user_info で同じ tab_id の「最新1件」を探し、その行の input_QA を txt に更新
-   * - 行が見つからなければ 404 を返す（通常は init-round が先に作成している想定）
    */ async "submit-topic"(params = {}) {
         const txt = String(params?.txt ?? "").trim();
         const tab_id = String(params?.tab_id ?? "").trim();
         if (!txt) return err("txt is required", 422);
         if (!tab_id) return err("tab_id is required", 422);
-        // 対象行を取得（同 tab_id の最新1件）
         const { data: row, error: selErr } = await supabase.from("dynamic_user_info").select("id").eq("tab_id", tab_id).order("created_at", {
             ascending: false
         }).limit(1).maybeSingle();
         if (selErr) return err(selErr.message ?? "DB select failed", 500);
         if (!row?.id) return err("target row for this tab_id not found (call init-round first)", 404);
-        // 更新
         const { data, error: updErr } = await supabase.from("dynamic_user_info").update({
             input_QA: txt
         }).eq("id", row.id).select().single();
@@ -176,14 +165,31 @@ const handlers = {
             row: data
         }, 200);
     },
-    // 子: 回答を保存（従来どおり、必要があれば後で合わせて等幹化）
-    async "submit-answer"(params = {}) {
+  /**
+   * 子: 回答を保存（更新 or 新規）
+   */ async "submit-answer"(params = {}) {
         const txt = String(params?.txt ?? "").trim();
         const tab_id = String(params?.tab_id ?? "").trim();
         const user_name = String(params?.user_name ?? "").trim();
         if (!txt) return err("txt is required", 422);
         if (!tab_id) return err("tab_id is required", 422);
-        if (!user_name) return err("user_name is required", 422);
+        // 既存探索
+        const { data: existing, error: findErr } = await supabase.from("dynamic_user_info").select("id").eq("tab_id", tab_id).order("created_at", {
+            ascending: false
+        }).limit(1).maybeSingle();
+        if (findErr) return err(findErr.message ?? "DB select failed", 500);
+        if (existing?.id) {
+            const { data, error: updErr } = await supabase.from("dynamic_user_info").update({
+                input_QA: txt
+            }).eq("id", existing.id).select().single();
+            if (updErr) return err(updErr.message ?? "DB update failed", 500);
+            return json({
+                ok: true,
+                row: data,
+                updated: true
+            }, 200);
+        }
+        if (!user_name) return err("user_name is required when inserting new answer", 422);
         const payload = {
             id: crypto.randomUUID(),
             tab_id,
@@ -199,22 +205,83 @@ const handlers = {
         if (error) return err(error.message ?? "DB insert failed", 500);
         return json({
             ok: true,
-            row: data
+            row: data,
+            created: true
         }, 201);
     },
-    // 子: お題が用意できたか？
-    async "is-topic-ready"() {
-        const { count, error } = await supabase.from("dynamic_user_info").select("id", {
-            count: "exact",
-            head: true
-        }).eq("now_host", true).not("input_QA", "is", null);
-        if (error) return err(error.message ?? "DB select failed", 500);
+  /**
+   * 子: お題が用意できたか？
+   *  - 入力: { tab_id }
+   *  - 手順:
+   *    1) User_list_test から tab_id に対応する room_name を取得
+   *    2) dynamic_user_info から「この tab_id の最新 round」を取得
+   *    3) 同じ room_name のメンバーの tab_id 一覧を取得
+   *    4) dynamic_user_info を (now_host=true) AND (round=上記) AND (tab_id ∈ 同室メンバー) で検索
+   *    5) 見つかった行の input_QA が null でなければ ready=true
+   *  - 失敗や未準備の場合でも **200** で返し、ok=false/ready=false をボディに載せる
+   */ async "is-topic-ready"(params = {}) {
+        const tab_id = String(params?.tab_id ?? "").trim();
+        if (!tab_id) return json({
+            ok: false,
+            ready: false,
+            error: "tab_id is required"
+        }, 200);
+        // 1) room_name
+        const { data: meRow, error: meErr } = await supabase.from("User_list_test").select("room_name").eq("tab_id", tab_id).order("created_at", {
+            ascending: false
+        }).limit(1).maybeSingle();
+        if (meErr) return json({
+            ok: false,
+            ready: false,
+            error: meErr.message ?? "DB select failed (User_list_test)"
+        }, 200);
+        const room_name = meRow?.room_name ? String(meRow.room_name) : null;
+        if (!room_name) return json({
+            ok: true,
+            ready: false
+        }, 200);
+        // 2) 最新 round（この tab_id の）
+        const { data: myRow, error: myErr } = await supabase.from("dynamic_user_info").select("round").eq("tab_id", tab_id).order("created_at", {
+            ascending: false
+        }).limit(1).maybeSingle();
+        if (myErr) return json({
+            ok: false,
+            ready: false,
+            error: myErr.message ?? "DB select failed (dynamic_user_info round)"
+        }, 200);
+        const round = typeof myRow?.round === "number" ? myRow.round : null;
+        if (round === null) return json({
+            ok: true,
+            ready: false
+        }, 200);
+        // 3) 同室メンバーの tab_id 群
+        const { data: peers, error: pErr } = await supabase.from("User_list_test").select("tab_id").eq("room_name", room_name);
+        if (pErr) return json({
+            ok: false,
+            ready: false,
+            error: pErr.message ?? "DB select failed (User_list_test peers)"
+        }, 200);
+        const peerIds = (peers ?? []).map((r) => r.tab_id).filter(Boolean);
+        if (peerIds.length === 0) return json({
+            ok: true,
+            ready: false
+        }, 200);
+        // 4) 同室 & 該当ラウンドの host 行
+        const { data: hostRow, error: hErr } = await supabase.from("dynamic_user_info").select("input_QA, tab_id").eq("now_host", true).eq("round", round).in("tab_id", peerIds).order("created_at", {
+            ascending: false
+        }).limit(1).maybeSingle();
+        if (hErr) return json({
+            ok: false,
+            ready: false,
+            error: hErr.message ?? "DB select failed (dynamic_user_info host)"
+        }, 200);
+        const ready = hostRow?.input_QA !== null && hostRow?.input_QA !== undefined;
         return json({
             ok: true,
-            ready: (count ?? 0) > 0
+            ready
         }, 200);
     },
-    // 現在のお題を取得
+    // 現在のお題（既存：グローバル最新）
     async "get-current-topic"() {
         const { data, error } = await supabase.from("dynamic_user_info").select("input_QA").eq("now_host", true).not("input_QA", "is", null).order("created_at", {
             ascending: false
@@ -226,59 +293,144 @@ const handlers = {
             topic
         }, 200);
     },
-    // 子の回答一覧
-    async "list-child-answers"() {
-        const { data, error } = await supabase.from("dynamic_user_info").select("user_name,input_QA").eq("now_host", false).not("input_QA", "is", null).order("created_at", {
-            ascending: true
-        });
-        if (error) return err(error.message ?? "DB select failed", 500);
-        const answers = (data ?? []).filter((r) => typeof r.user_name === "string" && typeof r.input_QA === "string").map((r) => ({
-            user_name: r.user_name,
-            input_QA: r.input_QA
-        }));
-        return json({
-            ok: true,
-            answers
-        }, 200);
+    // 子の回答一覧を取得
+    async "list-child-answers"(params = {}) {
+        const tab_id = String(params?.tab_id ?? "").trim();
+        if (!tab_id) return err("tab_id is required", 422);
+        // 1) 自分の room_name を取得
+        const { data: meRow, error: meErr } = await supabase
+            .from("User_list_test")
+            .select("room_name")
+            .eq("tab_id", tab_id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        if (meErr) return err(meErr.message ?? "DB select failed (User_list_test self)", 500);
+        const room_name = meRow?.room_name ? String(meRow.room_name) : null;
+        // room_name が無い場合は空配列を返す（同室不明のため）
+        if (!room_name) {
+            return json({ ok: true, answers: [] }, 200);
+        }
+        // 2) 同室メンバーの tab_id 群を取得
+        const { data: peers, error: peersErr } = await supabase
+            .from("User_list_test")
+            .select("tab_id")
+            .eq("room_name", room_name);
+        if (peersErr) return err(peersErr.message ?? "DB select failed (User_list_test peers)", 500);
+        const peerIds = (peers ?? [])
+            .map((r) => r.tab_id)
+            .filter((v) => typeof v === "string" && v.length > 0);
+        if (peerIds.length === 0) {
+            return json({ ok: true, answers: [] }, 200);
+        }
+        // 3) 同室メンバーのうち、now_host=false かつ input_QA が null でない子の回答を取得（古い→新しい）
+        const { data, error } = await supabase
+            .from("dynamic_user_info")
+            .select("user_name,input_QA")
+            .in("tab_id", peerIds)
+            .eq("now_host", false)
+            .not("input_QA", "is", null)
+            .order("created_at", { ascending: true });
+        if (error) return err(error.message ?? "DB select failed (dynamic_user_info)", 500);
+        // 4) 型を絞って最終レスポンス整形
+        const answers = (data ?? [])
+            .filter((r) => typeof r.user_name === "string" && typeof r.input_QA === "string")
+            .map((r) => ({ user_name: r.user_name, input_QA: r.input_QA }));
+        return json({ ok: true, answers }, 200);
     },
-    // 親待機の判定
-    async "are-children-answers-complete"() {
-        const { count: readyCount, error: er1 } = await supabase.from("is_ready").select("id", {
-            count: "exact",
-            head: true
-        });
-        if (er1) return err(er1.message ?? "DB select failed (is_ready)", 500);
-        let a = (readyCount ?? 0) - 1; // 親を除く
-        if (a < 0) a = 0;
-        const { count: childAnswered, error: er2 } = await supabase.from("dynamic_user_info").select("id", {
-            count: "exact",
-            head: true
-        }).eq("now_host", false).not("input_QA", "is", null);
-        if (er2) return err(er2.message ?? "DB select failed (dynamic_user_info)", 500);
-        const b = childAnswered ?? 0;
-        return json({
-            ok: true,
-            ready: a === b,
-            a,
-            b
-        }, 200);
+
+    // 親待機の判定（tab_id ベース／同室集計）
+    async "are-children-answers-complete"(params = {}) {
+        const tab_id = String(params?.tab_id ?? "").trim();
+        if (!tab_id) return err("tab_id is required", 422);
+        // 1) is_ready から自分の room_name を取得
+        const { data: meRow, error: meErr } = await supabase
+            .from("is_ready")
+            .select("room_name")
+            .eq("tab_id", tab_id)
+            .limit(1)
+            .maybeSingle();
+        if (meErr) return err(meErr.message ?? "DB select failed (is_ready self)", 500);
+        const room_name = meRow?.room_name ? String(meRow.room_name) : null;
+        if (!room_name) {
+            // 同室が特定できない場合は未準備扱いで返す
+            return json({ ok: true, ready: false, a: 0, b: 0 }, 200);
+        }
+        // 2) is_ready から同室メンバーの tab_id 群と人数を取得
+        const { data: roomPeers, count: roomCount, error: peersErr } = await supabase
+            .from("is_ready")
+            .select("tab_id", { count: "exact" })
+            .eq("room_name", room_name);
+        if (peersErr) return err(peersErr.message ?? "DB select failed (is_ready peers)", 500);
+        const peerTabIds = (roomPeers ?? [])
+            .map((r: any) => r.tab_id)
+            .filter((v: any) => typeof v === "string" && v.length > 0);
+        // 期待人数 a = （同室人数） - 1（ホスト想定）
+        const a = Math.max(0, (roomCount ?? 0) - 1);
+        // 3) dynamic_user_info から b を算出
+        //    同室 tab_id 群のうち、now_host=false かつ input_QA が非 null のレコード数
+        let b = 0;
+        if (peerTabIds.length > 0) {
+            const { count: answeredCount, error: ansErr } = await supabase
+                .from("dynamic_user_info")
+                .select("id", { count: "exact", head: true })
+                .in("tab_id", peerTabIds)
+                .eq("now_host", false)
+                .not("input_QA", "is", null);
+            if (ansErr) return err(ansErr.message ?? "DB select failed (dynamic_user_info answered)", 500);
+            b = answeredCount ?? 0;
+        }
+        // 4) 判定結果を返す
+        return json({ ok: true, ready: a === b, a, b }, 200);
     },
+
     // 親の選択画面用：候補一覧
-    async "list-parent-select-answers"() {
-        const { data, error } = await supabase.from("dynamic_user_info").select("user_name,input_QA").eq("now_host", false).not("input_QA", "is", null).order("created_at", {
-            ascending: true
-        });
-        if (error) return err(error.message ?? "DB select failed", 500);
-        const answers = (data ?? []).filter((r) => typeof r.user_name === "string" && typeof r.input_QA === "string").map((r) => ({
-            user_name: r.user_name,
-            input_QA: r.input_QA
-        }));
-        return json({
-            ok: true,
-            answers
-        }, 200);
+    async "list-parent-select-answers"(params = {}) {
+        const tab_id = String(params?.tab_id ?? "").trim();
+        if (!tab_id) return err("tab_id is required", 422);
+        // 1) tab_id から自分の room_name を取得
+        const { data: meRow, error: meErr } = await supabase
+            .from("User_list_test")
+            .select("room_name")
+            .eq("tab_id", tab_id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        if (meErr) return err(meErr.message ?? "DB select failed (User_list_test self)", 500);
+        const room_name = meRow?.room_name ? String(meRow.room_name) : null;
+        if (!room_name) {
+            // 同室不明なら空で返す
+            return json({ ok: true, answers: [] }, 200);
+        }
+        // 2) 同じ room_name のメンバーの tab_id 群を取得
+        const { data: peers, error: peersErr } = await supabase
+            .from("User_list_test")
+            .select("tab_id")
+            .eq("room_name", room_name);
+        if (peersErr) return err(peersErr.message ?? "DB select failed (User_list_test peers)", 500);
+        const peerTabIds = (peers ?? [])
+            .map((r: any) => r.tab_id)
+            .filter((v: any) => typeof v === "string" && v.length > 0);
+        if (peerTabIds.length === 0) {
+            return json({ ok: true, answers: [] }, 200);
+        }
+        // 3) 同室メンバーの中から、子(now_host=false) で回答あり(input_QA not null) を取得（古い→新しい）
+        const { data, error } = await supabase
+            .from("dynamic_user_info")
+            .select("user_name,input_QA")
+            .in("tab_id", peerTabIds)
+            .eq("now_host", false)
+            .not("input_QA", "is", null)
+            .order("created_at", { ascending: true });
+        if (error) return err(error.message ?? "DB select failed (dynamic_user_info)", 500);
+        // 4) 返却整形
+        const answers = (data ?? [])
+            .filter((r: any) => typeof r.user_name === "string" && typeof r.input_QA === "string")
+            .map((r: any) => ({ user_name: r.user_name, input_QA: r.input_QA }));
+        return json({ ok: true, answers }, 200);
     },
-    // 親が選んだ回答を確定：total_pt + 1 & シグナル
+
+    // 親が選んだ回答を確定
     async "mark-selected-answer"(params = {}) {
         const user_name = String(params?.user_name ?? "").trim();
         const input_QA = String(params?.input_QA ?? "").trim();

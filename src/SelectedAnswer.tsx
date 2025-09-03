@@ -97,7 +97,7 @@ function SelectedAnswer() {
       </div>
 
       <div style={nameListCardStyle}>
-        <div>名前のリスト</div>
+        <div>他の人の回答</div>
         <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
           {others.length > 0 ? (
             others.map((a, idx) => (

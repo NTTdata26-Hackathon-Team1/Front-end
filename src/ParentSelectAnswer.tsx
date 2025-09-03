@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'; // ★ useRefを追加
+import React, { useEffect, useState, useRef } from 'react'; // ★ useRefを使用
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -56,6 +56,25 @@ const buttonStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
+// ★ 追加: tab_id の取得ヘルパー（localStorage → sessionStorage → URL ?tab_id=）
+function resolveTabId(): string | null {
+  try {
+    const ls = window.localStorage.getItem('tab_id') ?? window.localStorage.getItem('tabId');
+    if (ls && ls.trim()) return ls.trim();
+
+    const ss = window.sessionStorage.getItem('tab_id') ?? window.sessionStorage.getItem('tabId');
+    if (ss && ss.trim()) return ss.trim();
+
+    const q = new URLSearchParams(window.location.search);
+    const fromQuery = (q.get('tab_id') ?? q.get('tabId'))?.trim() || '';
+    if (fromQuery) return fromQuery;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function ParentSelectAnswer() {
   const [answers, setAnswers] = useState<AnswerPair[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -65,18 +84,29 @@ function ParentSelectAnswer() {
   const navigate = useNavigate();
 
   const navTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // ★ 遷移用タイマー
+  const tabIdRef = useRef<string | null>(null); // ★ 追加: 取得した tab_id を保持
 
   useEffect(() => {
     let cancelled = false;
+    tabIdRef.current = resolveTabId(); // ★ 追加: 初回に tab_id を確定
+
     (async () => {
       setLoading(true);
       setErrMsg(null);
       try {
-        // 候補の取得
+        const tab_id = tabIdRef.current; // ★ 追加
+        if (!tab_id) {
+          setErrMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
+          setAnswers([]);
+          return;
+        }
+
+        // 候補の取得（★ 変更: tab_id をボディに渡す）
         const { data, error } = await supabase.functions.invoke<{ ok: boolean; answers?: AnswerPair[] }>(
           'clever-handler',
-          { body: { method: 'list-parent-select-answers' } }
+          { body: { method: 'list-parent-select-answers', tab_id } } // ★ 修正箇所
         );
+
         if (cancelled) return;
 
         if (error) {
@@ -92,6 +122,7 @@ function ParentSelectAnswer() {
         if (!cancelled) setLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
       if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current); // ★ アンマウント時に必ずクリア
@@ -135,7 +166,7 @@ function ParentSelectAnswer() {
     } catch (e: any) {
       setErrMsg(e?.message ?? '決定に失敗しました（unknown error）');
     } finally {
-      // ★ 遷移予約済みならボタンはdisabledのままにしておく
+      // ★ 遷移予約済みならボタンはdisabledのまま
       if (!scheduled) setDeciding(false);
     }
   };

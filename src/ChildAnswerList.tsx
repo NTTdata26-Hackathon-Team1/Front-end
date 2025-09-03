@@ -41,14 +41,34 @@ const answerStyle: React.CSSProperties = {
 
 const POLL_MS = 3000;
 
+// ★追加: tab_id の取得ヘルパー（localStorage → sessionStorage → URL ?tab_id=）
+function resolveTabId(): string | null {
+  try {
+    const ls = window.localStorage.getItem('tab_id') ?? window.localStorage.getItem('tabId');
+    if (ls && ls.trim()) return ls.trim();
+
+    const ss = window.sessionStorage.getItem('tab_id') ?? window.sessionStorage.getItem('tabId');
+    if (ss && ss.trim()) return ss.trim();
+
+    const q = new URLSearchParams(window.location.search);
+    const fromQuery = (q.get('tab_id') ?? q.get('tabId'))?.trim() || '';
+    if (fromQuery) return fromQuery;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function ChildAnswerList() {
   const [answers, setAnswers] = useState<AnswerPair[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const navTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 遷移遅延（★追加）////////////
+  const navTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlightRef = useRef(false);
   const cancelledRef = useRef(false);
   const routedRef = useRef(false);
+  const tabIdRef = useRef<string | null>(null); // ★追加: 取得した tab_id を保持
   const navigate = useNavigate();
 
   const scheduleNext = () => {
@@ -65,13 +85,20 @@ function ChildAnswerList() {
     setErrorMsg(null);
 
     try {
-      // 回答一覧
+      // ★追加: tab_id が無い場合はエラー表示だけして次回へ
+      const tab_id = tabIdRef.current;
+      if (!tab_id) {
+        setErrorMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
+        return;
+      }
+
+      // 回答一覧（★変更: tab_id を一緒に送る）
       const [listRes, decideRes] = await Promise.all([
         supabase.functions.invoke<{ ok: boolean; answers?: AnswerPair[] }>('clever-handler', {
-          body: { method: 'list-child-answers' }
+          body: { method: 'list-child-answers', tab_id }, // ★ここを修正
         }),
         supabase.functions.invoke<{ ok: boolean; decided?: boolean }>('clever-handler', {
-          body: { method: 'is-selection-decided' }
+          body: { method: 'is-selection-decided' }, // こちらはそのまま
         }),
       ]);
 
@@ -81,18 +108,15 @@ function ChildAnswerList() {
         setAnswers(listRes.data.answers);
       }
 
-      // 決定済みなら 2 秒待ってから遷移（★ここを変更）///////////
+      // 決定済みなら 2 秒待ってから遷移
       if (!decideRes.error && decideRes.data?.ok && decideRes.data.decided) {
         routedRef.current = true;
-        if (timerRef.current) clearTimeout(timerRef.current);  // ポーリング停止
-        // 2秒待ってから遷移
+        if (timerRef.current) clearTimeout(timerRef.current); // ポーリング停止
         navTimeoutRef.current = setTimeout(() => {
           navigate('/selectedanswer', { replace: true });
         }, 2000);
-        return; // 以降の scheduleNext は不要
+        return;
       }
-      //////////////////////////////////////////
-
     } catch (e: any) {
       setErrorMsg(e?.message ?? '更新中にエラーが発生しました');
     } finally {
@@ -103,11 +127,12 @@ function ChildAnswerList() {
 
   useEffect(() => {
     cancelledRef.current = false;
+    tabIdRef.current = resolveTabId(); // ★追加: 初回マウント時に tab_id を確定
     pollOnce();
     return () => {
       cancelledRef.current = true;
       if (timerRef.current) clearTimeout(timerRef.current);
-      if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current); // ★追加：遷移タイマーもクリア
+      if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -136,4 +161,3 @@ function ChildAnswerList() {
 }
 
 export default ChildAnswerList;
-
