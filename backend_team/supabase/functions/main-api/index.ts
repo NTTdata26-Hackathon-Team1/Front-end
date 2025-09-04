@@ -184,12 +184,7 @@ const err = (msg, status = 400, extra = {}) => json({
             row: data
         }, 200);
     }
-  /** get-current-topic（user_log ベース）
-   * 入力: { tab_id }
-   *  1) user_log から tab_id 最新1件 → room_name, round 取得
-   *  2) 同 room & round で now_host=true, input_QA not null の最新1件を取得
-   *  3) あればその input_QA を topic として返す
-   */ if (action === "get-current-topic") {
+  /** get-current-topic（user_log ベース） */ if (action === "get-current-topic") {
         const tab_id = String(pickParam("tab_id") ?? "").trim();
         if (!tab_id) return json({
             ok: false,
@@ -223,12 +218,7 @@ const err = (msg, status = 400, extra = {}) => json({
             topic
         }, 200);
     }
-  /** submit-answer（user_log の最新1件を更新）
-   * 入力: { tab_id, txt }
-   *  1) user_log を tab_id で最新1件検索（id を取得）
-   *  2) その行の input_QA を txt に UPDATE
-   * 返却: { ok:true, row:<更新後>, updated:true }
-   */ if (action === "submit-answer") {
+  /** submit-answer（user_log の最新1件を更新） */ if (action === "submit-answer") {
         const tab_id = String(pickParam("tab_id") ?? "").trim();
         const txt = String(pickParam("txt") ?? "").trim();
         if (!tab_id) return json({
@@ -265,14 +255,7 @@ const err = (msg, status = 400, extra = {}) => json({
             updated: true
         }, 200);
     }
-  /** ---------- ★ 追加: list-parent-select-answers ----------
-   * 入力: { tab_id }
-   * 手順:
-   *  1) user_log から tab_id 一致の最新1件を取得 → room_name, round を得る
-   *  2) user_log を room_name & round 一致, now_host=false, input_QA not null で検索
-   *  3) 取得した行を { user_name, input_QA } の配列に整形して返す
-   * 返却: { ok:true, answers: Array<{ user_name:string, input_QA:string }> }
-   */ if (action === "list-parent-select-answers") {
+  /** ---------- ★ 追加: list-parent-select-answers ---------- */ if (action === "list-parent-select-answers") {
         const tab_id = String(pickParam("tab_id") ?? "").trim();
         if (!tab_id) return json({
             ok: false,
@@ -309,13 +292,7 @@ const err = (msg, status = 400, extra = {}) => json({
             answers
         }, 200);
     }
-  /** ---------- ★ 追加: mark-selected-answer ----------
-   * 入力: { user_name, input_QA, round }
-   * 処理:
-   *  user_log を user_name, input_QA, round, now_host=false で 1件特定し、
-   *  total_pt を +1, vote_to='SELECTED' に更新
-   * 返却: { ok:true }
-   */ if (action === "mark-selected-answer") {
+  /** ---------- ★ 追加: mark-selected-answer ---------- */ if (action === "mark-selected-answer") {
         const user_name = String(pickParam("user_name") ?? "").trim();
         const input_QA = String(pickParam("input_QA") ?? "").trim();
         const round = Number(pickParam("round") ?? NaN);
@@ -354,15 +331,7 @@ const err = (msg, status = 400, extra = {}) => json({
             ok: true
         }, 200);
     }
-  /** ---------- ★ 追加: get-selected-answer ----------
-   * 入力: { tab_id }
-   * 手順:
-   *  1) user_log を tab_id で最新1件取得 → room_name, round を得る
-   *  2) 同じ room_name & round の集合に対して、
-   *     - best : now_host=false & vote_to='SELECTED' を created_at DESC で1件
-   *     - others: now_host=false & vote_to IS NULL の一覧（created_at ASC）
-   * 返却: { ok:true, best: {user_name,input_QA}|null, others: Array<{user_name,input_QA}> }
-   */ if (action === "get-selected-answer") {
+  /** ---------- ★ 追加: get-selected-answer ---------- */ if (action === "get-selected-answer") {
         const tab_id = String(pickParam("tab_id") ?? "").trim();
         if (!tab_id) return json({
             ok: false,
@@ -414,6 +383,42 @@ const err = (msg, status = 400, extra = {}) => json({
             best,
             others
         }, 200);
+    }
+  /** ---------- ★ 新規追加: ready-to-next ---------- 
+   * 入力: { tab_id }
+   * 手順:
+   *  1) user_log を tab_id で最新1件検索（id を取得）
+   *  2) その行の next を TRUE に UPDATE
+   * 返却: 204 No Content（成功時はボディなし／エラー時は JSON で返却）
+   */ if (action === "ready-to-next") {
+        const tab_id = String(pickParam("tab_id") ?? "").trim();
+        if (!tab_id) return json({
+            ok: false,
+            error: "tab_id is required"
+        }, 200);
+        const { data: latest, error: selErr } = await supabase.from("user_log").select("id").eq("tab_id", tab_id).order("created_at", {
+            ascending: false
+        }).limit(1).maybeSingle();
+        if (selErr) return json({
+            ok: false,
+            error: selErr.message
+        }, 200);
+        if (!latest?.id) return json({
+            ok: false,
+            error: "target row not found"
+        }, 200);
+        const { error: updErr } = await supabase.from("user_log").update({
+            next: true
+        }).eq("id", latest.id);
+        if (updErr) return json({
+            ok: false,
+            error: updErr.message
+        }, 200);
+        // 返り値なし（204）
+        return new Response(null, {
+            status: 204,
+            headers: corsHeaders
+        });
     }
     return err("Unknown action", 400);
 });

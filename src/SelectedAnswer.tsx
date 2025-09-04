@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,6 +10,20 @@ type GetSelectedAnswerResp = {
   others?: AnswerPair[];
   error?: string;
 };
+type DecideAndRouteResp = {
+  ok: boolean;
+  matched?: boolean;
+  to?: string;
+  now_host?: boolean;
+  finished?: boolean;
+  round?: number;
+  room_name?: string;
+  counts?: { a: number; b: number };
+  reason?: string;
+  error?: string;
+};
+
+const POLL_MS = 2000; // decide-and-route ポーリング間隔(ms)
 
 const containerStyle: React.CSSProperties = {
   textAlign: 'center',
@@ -103,7 +117,56 @@ function SelectedAnswer() {
   const [round, setRound] = useState<number | null>(null);
   const [roundLoading, setRoundLoading] = useState<boolean>(false);
 
+  // 「次へ」送信中フラグ / 送信後の待機状態（ポーリング中）フラグ
+  const [nexting, setNexting] = useState<boolean>(false);
+  const [waitingRoute, setWaitingRoute] = useState<boolean>(false);
+
   const navigate = useNavigate();
+
+  // ポーリング制御
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlightRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const routedRef = useRef(false);
+  const tabIdRef = useRef<string | null>(null);
+
+  const scheduleNext = () => {
+    if (cancelledRef.current || routedRef.current) return;
+    timerRef.current = setTimeout(pollOnce, POLL_MS);
+  };
+
+  const pollOnce = async () => {
+    if (cancelledRef.current || inFlightRef.current || routedRef.current) {
+      scheduleNext();
+      return;
+    }
+    const tab_id = tabIdRef.current;
+    if (!tab_id) {
+      setErrorMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
+      return;
+    }
+
+    inFlightRef.current = true;
+    try {
+      const { data, error } = await supabase.functions.invoke<DecideAndRouteResp>('polling-api', {
+        body: { method: 'decide-and-route', params: { tab_id } },
+      });
+
+      if (error) {
+        setErrorMsg(error.message ?? 'decide-and-route の確認に失敗しました');
+      } else if (data?.ok && data.matched && data.to) {
+        routedRef.current = true;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        navigate(data.to, { replace: true });
+        return;
+      }
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? 'ポーリング中にエラーが発生しました');
+    } finally {
+      inFlightRef.current = false;
+      scheduleNext();
+    }
+  };
 
   // round を main-api / get-round で取得
   const fetchRound = async (tab_id: string) => {
@@ -126,10 +189,49 @@ function SelectedAnswer() {
     }
   };
 
+  // 「次へ」→ ready-to-next を呼び、その後 decide-and-route をポーリング
+  const handleNext = async () => {
+    if (nexting || waitingRoute) return;
+    const tab_id = tabIdRef.current ?? resolveTabId();
+    if (!tab_id) {
+      setErrorMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
+      return;
+    }
+    tabIdRef.current = tab_id;
+
+    setNexting(true);
+    setErrorMsg(null);
+    try {
+      const { error } = await supabase.functions.invoke<unknown>('main-api', {
+        body: { method: 'ready-to-next', params: { tab_id } },
+      });
+      if (error) {
+        setErrorMsg(error.message ?? 'ready-to-next の呼び出しに失敗しました');
+      } else {
+        // 送信成功 → 以降は遷移先が確定するまでポーリング
+        setWaitingRoute(true);
+        // すぐ1回実行してから定期ポーリング
+        if (timerRef.current) clearTimeout(timerRef.current);
+        routedRef.current = false;
+        cancelledRef.current = false;
+        inFlightRef.current = false;
+        pollOnce();
+      }
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? 'ready-to-next の呼び出しに失敗しました（unknown error）');
+    } finally {
+      setNexting(false);
+    }
+  };
+
   useEffect(() => {
+    cancelledRef.current = false;
+
     (async () => {
       try {
         const tab_id = resolveTabId();
+        tabIdRef.current = tab_id;
+
         if (!tab_id) {
           setErrorMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
           return;
@@ -156,6 +258,11 @@ function SelectedAnswer() {
         setErrorMsg(e?.message ?? '不明なエラーで取得失敗');
       }
     })();
+
+    return () => {
+      cancelledRef.current = true;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   return (
@@ -190,8 +297,19 @@ function SelectedAnswer() {
         <div style={{ color: 'crimson', marginBottom: 16 }}>{errorMsg}</div>
       )}
 
-      <button style={buttonStyle} onClick={() => navigate('/lastanswer')}>
-        次へ
+      <button
+        style={buttonStyle}
+        onClick={handleNext}
+        disabled={nexting || waitingRoute}
+        title={
+          nexting
+            ? '送信中…'
+            : waitingRoute
+              ? '他の参加者を待機しています…'
+              : '次へ'
+        }
+      >
+        {nexting ? '送信中…' : waitingRoute ? '待機中…' : '次へ'}
       </button>
     </div>
   );

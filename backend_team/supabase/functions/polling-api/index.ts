@@ -24,7 +24,7 @@ console.info("polling-api: server started (service-role + CORS)");
     if (!rows || rows.length === 0) return [];
     const asc = [
         ...rows
-    ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); // 古い→新しい
+    ].sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()); // 古い→新しい
     const newest = asc[asc.length - 1];
     return [
         newest,
@@ -205,7 +205,10 @@ Deno.serve(async (req) => {
  * decide-and-route（A/B 分岐版）
  * 入力: tab_id
  *  A) 初回: ready=true の人数が num_of_totalusers と一致 → ラウンド開始
- *  B) 2回目以降: next=true の人数が num_of_totalusers と一致 → 全 next=false → 終了判定 or 次ラウンド
+ *     ホスト決定は「同 room & round=0 の行」を newestFirstThenOldAsc で並べ、
+ *     その配列内インデックス n と (newRound % N) の一致で判定。
+ *  B) 2回目以降: next=true の人数が num_of_totalusers と一致（※現在ラウンド & 同 room 限定）
+ *     → 終了判定 or 次ラウンド。ホスト決定も同様に round=0 の並びで判定。
  */ async function decideAndRouteHandler(supabase, tab_id) {
     if (!tab_id) return json({
         ok: false,
@@ -260,21 +263,22 @@ Deno.serve(async (req) => {
                 }
             }, 200);
         }
-        // 進行：newRound & now_host 判定
+        // 進行：newRound & now_host 判定（並びは room & round=0 限定）
         const newRound = currentRound + 1;
-        const { data: peers, error: peersErr } = await supabase.from("user_log").select("tab_id, user_name, created_at").eq("room_name", room_name).order("created_at", {
-            ascending: true
-        });
-        if (peersErr) return json({
+        const { data: peers0, error: peersErr0 } = await supabase.from("user_log").select("tab_id, user_name, created_at").eq("room_name", room_name).eq("round", 0) // [CHANGED] round=0 に限定
+            .order("created_at", {
+                ascending: true
+            });
+        if (peersErr0) return json({
             ok: false,
             matched: false,
-            error: peersErr.message
+            error: peersErr0.message
         }, 200);
-        const ordered = newestFirstThenOldAsc(peers ?? []);
-        let n = ordered.findIndex((r) => r.tab_id === tab_id);
-        if (n < 0) n = 0;
-        const N = b; // メンバー数＝num_of_totalusers
-        const hostFlag = newRound % N === n;
+        const roster = newestFirstThenOldAsc(peers0 ?? []);
+        let n = roster.findIndex((r) => r.tab_id === tab_id);
+        if (n < 0) n = 0; // 安全側デフォルト
+        const N = b; // ＝ num_of_totalusers
+        const hostFlag = newRound % N === n; // 指定ロジック
         const { error: insErr } = await supabase.from("user_log").insert({
             tab_id,
             room_name,
@@ -298,11 +302,12 @@ Deno.serve(async (req) => {
             N
         }, 200);
     }
-    // ---------- (B) round !== 0 : next 集合で進行判定（新仕様） ----------
+    // ---------- (B) round !== 0 : next 集合で進行判定（※現在ラウンド & room 限定） ----------
     const { count: a2, error: aErr2 } = await supabase.from("user_log").select("id", {
         count: "exact",
         head: true
-    }).eq("room_name", room_name).eq("next", true);
+    }).eq("room_name", room_name).eq("round", currentRound) // 現在ラウンド限定
+        .eq("next", true);
     if (aErr2) return json({
         ok: false,
         matched: false,
@@ -327,15 +332,6 @@ Deno.serve(async (req) => {
             }
         }, 200);
     }
-    // 全プレイヤーが next=true → 全行の next を FALSE にリセット
-    const { error: resetErr } = await supabase.from("user_log").update({
-        next: false
-    });
-    if (resetErr) return json({
-        ok: false,
-        matched: false,
-        error: resetErr.message
-    }, 200);
     // 最新の自タブ行を取り直す（c, room 再取得）
     const { data: myRow2, error: myErr2 } = await supabase.from("user_log").select("room_name, user_name, round, created_at").eq("tab_id", tab_id).order("created_at", {
         ascending: false
@@ -346,7 +342,7 @@ Deno.serve(async (req) => {
         error: myErr2.message
     }, 200);
     const room_name2 = String(myRow2?.room_name ?? room_name);
-    const c = typeof myRow2?.round === "number" ? myRow2.round : 0;
+    const c = typeof myRow2?.round === "number" ? myRow2.round : currentRound;
     // この部屋の総ラウンド数 d と総人数（N 用）
     const { data: infoRow3, error: infoErr3 } = await supabase.from("room_info_TEMP").select("num_of_rounds, num_of_totalusers, created_at").eq("room_name", room_name2).order("created_at", {
         ascending: false
@@ -369,21 +365,22 @@ Deno.serve(async (req) => {
             room_name: room_name2
         }, 200);
     }
-    // 続行：ラウンド +1 & now_host 判定
+    // 続行：ラウンド +1 & now_host 判定（並びは room & round=0 限定）
     const newRound2 = c + 1;
-    const { data: peers3, error: peersErr3 } = await supabase.from("user_log").select("tab_id, user_name, created_at").eq("room_name", room_name2).order("created_at", {
-        ascending: true
-    });
-    if (peersErr3) return json({
+    const { data: peers0b, error: peersErr0b } = await supabase.from("user_log").select("tab_id, user_name, created_at").eq("room_name", room_name2).eq("round", 0) // [CHANGED] round=0 に限定
+        .order("created_at", {
+            ascending: true
+        });
+    if (peersErr0b) return json({
         ok: false,
         matched: false,
-        error: peersErr3.message
+        error: peersErr0b.message
     }, 200);
-    const ordered3 = newestFirstThenOldAsc(peers3 ?? []);
-    let n3 = ordered3.findIndex((r) => r.tab_id === tab_id);
+    const roster2 = newestFirstThenOldAsc(peers0b ?? []);
+    let n3 = roster2.findIndex((r) => r.tab_id === tab_id);
     if (n3 < 0) n3 = 0;
     const N3 = totalUsers ?? 1;
-    const hostFlag3 = newRound2 % N3 === n3;
+    const hostFlag3 = newRound2 % N3 === n3; // 指定ロジック
     const { error: insErr3 } = await supabase.from("user_log").insert({
         tab_id,
         room_name: room_name2,
@@ -410,17 +407,15 @@ Deno.serve(async (req) => {
 /**
  * ★ 追加: is-topic-ready
  * 入力: tab_id
- * 手順:
  *  1) user_log から tab_id 最新1件を取得し、room_name と round を得る
  *  2) user_log を room_name & round で検索し、input_QA が null でない行があるかを確認
- * 返却: { ok:true, ready:boolean }（エラー時は ok:false, ready:false, error 付き）
+ * 返却: { ok:true, ready:boolean }
  */ async function isTopicReadyHandler(supabase, tab_id) {
     if (!tab_id) return json({
         ok: false,
         ready: false,
         error: "tab_id is required"
     }, 200);
-    // 1) 最新の自タブ行
     const { data: myRow, error: myErr } = await supabase.from("user_log").select("room_name, round, created_at").eq("tab_id", tab_id).order("created_at", {
         ascending: false
     }).limit(1).maybeSingle();
@@ -431,13 +426,10 @@ Deno.serve(async (req) => {
     }, 200);
     const room_name = typeof myRow?.room_name === "string" ? myRow.room_name : null;
     const round = typeof myRow?.round === "number" ? myRow.round : null;
-    if (!room_name || round === null) {
-        return json({
-            ok: true,
-            ready: false
-        }, 200);
-    }
-    // 2) 同じ room_name & round で input_QA が null でない行があるか？
+    if (!room_name || round === null) return json({
+        ok: true,
+        ready: false
+    }, 200);
     const { count, error } = await supabase.from("user_log").select("id", {
         count: "exact",
         head: true
@@ -456,16 +448,11 @@ Deno.serve(async (req) => {
 /**
  * ★ 追加: list-child-answers
  * 入力: tab_id
- * 手順:
- *  1) user_log から tab_id 最新1件を取得し、room_name と round を得る
- *  2) user_log を room_name & round & now_host=false で検索し、
- *     取得したレコードの { user_name, input_QA } の配列を返却
  */ async function listChildAnswersHandler(supabase, tab_id) {
     if (!tab_id) return json({
         ok: false,
         error: "tab_id is required"
     }, 200);
-    // 1) 最新の自タブ行から room_name, round を取得
     const { data: myRow, error: myErr } = await supabase.from("user_log").select("room_name, round, created_at").eq("tab_id", tab_id).order("created_at", {
         ascending: false
     }).limit(1).maybeSingle();
@@ -475,13 +462,10 @@ Deno.serve(async (req) => {
     }, 200);
     const room_name = typeof myRow?.room_name === "string" ? myRow.room_name : null;
     const round = typeof myRow?.round === "number" ? myRow.round : null;
-    if (!room_name || round === null) {
-        return json({
-            ok: true,
-            answers: []
-        }, 200);
-    }
-    // 2) 同条件で now_host=false かつ input_QA NOT NULL の行を取得
+    if (!room_name || round === null) return json({
+        ok: true,
+        answers: []
+    }, 200);
     const { data, error } = await supabase.from("user_log").select("user_name, input_QA").eq("room_name", room_name).eq("round", round).eq("now_host", false).not("input_QA", "is", null).order("created_at", {
         ascending: true
     });
@@ -501,17 +485,12 @@ Deno.serve(async (req) => {
 /**
  * ★ 追加: is-selection-decided
  * 入力: tab_id
- * 手順:
- *  1) user_log から tab_id 最新1件を取得し、room_name と round を得る
- *  2) user_log を room_name & round で検索し、vote_to='SELECTED' の行が存在するか判定
- * 返却: { ok:true, decided:boolean }
  */ async function isSelectionDecidedHandler(supabase, tab_id) {
     if (!tab_id) return json({
         ok: false,
         decided: false,
         error: "tab_id is required"
     }, 200);
-    // 1) 最新の自タブ行
     const { data: myRow, error: myErr } = await supabase.from("user_log").select("room_name, round, created_at").eq("tab_id", tab_id).order("created_at", {
         ascending: false
     }).limit(1).maybeSingle();
@@ -522,13 +501,10 @@ Deno.serve(async (req) => {
     }, 200);
     const room_name = typeof myRow?.room_name === "string" ? myRow.room_name : null;
     const round = typeof myRow?.round === "number" ? myRow.round : null;
-    if (!room_name || round === null) {
-        return json({
-            ok: true,
-            decided: false
-        }, 200);
-    }
-    // 2) 同条件で vote_to='SELECTED' が存在するか
+    if (!room_name || round === null) return json({
+        ok: true,
+        decided: false
+    }, 200);
     const { count, error } = await supabase.from("user_log").select("id", {
         count: "exact",
         head: true
@@ -547,14 +523,6 @@ Deno.serve(async (req) => {
 /**
  * ★ 新規追加: are-children-answers-complete
  * 入力: tab_id
- * 手順:
- *  1) user_log から同 tab_id の全行を参照し、うち created_at が最新の 1 行を取得
- *     → その行の room_name と round を取得
- *  2) user_log を room_name & round で検索し、
- *     now_host=false かつ input_QA が null でない行の総数を a とする
- *  3) room_info_TEMP を room_name で最新 1 件取得し、num_of_totalusers を得る
- *     → b = (num_of_totalusers - 1)
- *  4) { ok:true, ready:(a===b), a, b } を返却
  */ async function areChildrenAnswersListHandler(supabase, tab_id) {
     if (!tab_id) return json({
         ok: false,
@@ -563,7 +531,6 @@ Deno.serve(async (req) => {
         b: 0,
         error: "tab_id is required"
     }, 200);
-    // 1) 対象 tab_id の最新行（room_name, round）
     const { data: latestRow, error: latestErr } = await supabase.from("user_log").select("room_name, round, created_at").eq("tab_id", tab_id).order("created_at", {
         ascending: false
     }).limit(1).maybeSingle();
@@ -576,16 +543,12 @@ Deno.serve(async (req) => {
     }, 200);
     const room_name = typeof latestRow?.room_name === "string" ? latestRow.room_name : null;
     const round = typeof latestRow?.round === "number" ? latestRow.round : null;
-    if (!room_name || round === null) {
-        // 部屋やラウンドがまだ定まっていない
-        return json({
-            ok: true,
-            ready: false,
-            a: 0,
-            b: 0
-        }, 200);
-    }
-    // 2) 子の回答数 a をカウント（now_host=false & input_QA not null）
+    if (!room_name || round === null) return json({
+        ok: true,
+        ready: false,
+        a: 0,
+        b: 0
+    }, 200);
     const { count: a, error: aErr } = await supabase.from("user_log").select("id", {
         count: "exact",
         head: true
@@ -597,7 +560,6 @@ Deno.serve(async (req) => {
         b: 0,
         error: aErr.message
     }, 200);
-    // 3) b を算出（num_of_totalusers - 1）
     const { data: roomInfo, error: roomErr } = await supabase.from("room_info_TEMP").select("num_of_totalusers, created_at").eq("room_name", room_name).order("created_at", {
         ascending: false
     }).limit(1).maybeSingle();

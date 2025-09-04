@@ -117,6 +117,95 @@ Deno.serve(async (req) => {
             updated_rows: Array.isArray(data) ? data.length : 0
         }, 200);
     }
+    // ---- get-result（新規追加）----
+    // 仕様:
+    // 1) 入力 tab_id の全行 total_pt 合計を出す
+    // 2) 入力 tab_id の最新行から room_name を取得
+    // 3) その room_name の全行を取得し、tab_id ごとに total_pt を合計 + 代表 user_name（最新の非 null）
+    // 4) 合計値で降順ソートし、上位3件を { rank, user_name, pt } で返す
+    if (action === "get-result") {
+        const tab_id = String(body.tab_id ?? body?.params?.tab_id ?? "").trim();
+        if (!tab_id) return err("tab_id is required", 422);
+        // (A) 自分の合計 total_pt（参考: 必須ではないが取得しておく）
+        const { data: myRows, error: myErr } = await supabase.from("user_log").select("user_name, total_pt, created_at").eq("tab_id", tab_id);
+        if (myErr) {
+            console.error("select user_log by tab_id error:", myErr);
+            return err("failed to fetch user_log by tab_id", 500, {
+                code: myErr?.code ?? null,
+                details: myErr?.details ?? myErr?.message,
+                hint: myErr?.hint ?? null
+            });
+        }
+        const sumTotalPt = (rows) => rows?.map((r) => typeof r?.total_pt === "number" ? r.total_pt : Number(r?.total_pt) || 0)?.reduce((a, b) => a + b, 0) ?? 0;
+        const myTotal = sumTotalPt(myRows ?? []);
+        // 最新の user_name を控える（null 時は undefined）
+        const myLatestName = (myRows ?? []).filter((r) => typeof r?.user_name === "string" && r.user_name.trim()).sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())[0]?.user_name ?? undefined;
+        // (B) 入力 tab_id の最新行 → room_name を取得
+        const { data: latestRow, error: latestErr } = await supabase.from("user_log").select("room_name, created_at").eq("tab_id", tab_id).order("created_at", {
+            ascending: false
+        }).limit(1).maybeSingle();
+        if (latestErr) {
+            console.error("fetch latest user_log error:", latestErr);
+            return err("failed to fetch latest user_log", 500, {
+                code: latestErr?.code ?? null,
+                details: latestErr?.details ?? latestErr?.message,
+                hint: latestErr?.hint ?? null
+            });
+        }
+        const room_name = latestRow?.room_name;
+        if (typeof room_name !== "string" || !room_name.trim()) {
+            return err("room_name is not determined for this tab_id", 422);
+        }
+        // (C) 同 room_name の全行を取得（tab_id ごとに合計するため一括取得）
+        const { data: roomRows, error: roomErr } = await supabase.from("user_log").select("tab_id, user_name, total_pt, created_at").eq("room_name", room_name);
+        if (roomErr) {
+            console.error("select user_log by room_name error:", roomErr);
+            return err("failed to fetch user_log by room_name", 500, {
+                code: roomErr?.code ?? null,
+                details: roomErr?.details ?? roomErr?.message,
+                hint: roomErr?.hint ?? null
+            });
+        }
+        const aggByTab = new Map();
+        for (const r of roomRows ?? []) {
+            const t = String(r?.tab_id ?? "").trim();
+            if (!t) continue;
+            const pt = typeof r?.total_pt === "number" ? r.total_pt : Number(r?.total_pt) || 0;
+            const ts = new Date(r?.created_at ?? 0).getTime();
+            const prev = aggByTab.get(t) ?? {
+                sumPt: 0,
+                latestName: undefined,
+                latestTs: -1
+            };
+            const next = {
+                ...prev,
+                sumPt: prev.sumPt + pt
+            };
+            const nm = typeof r?.user_name === "string" ? r.user_name.trim() : "";
+            if (nm && ts >= prev.latestTs) {
+                next.latestName = nm;
+                next.latestTs = ts;
+            }
+            aggByTab.set(t, next);
+        }
+        // (E) ランキング配列に変換
+        const entries = Array.from(aggByTab.entries()).map(([tid, v]) => ({
+            tab_id: tid,
+            user_name: v.latestName ?? (tid === tab_id && typeof myLatestName === "string" ? myLatestName : "unknown"),
+            pt: v.sumPt
+        }));
+        // 合計で降順 → 上位3
+        entries.sort((a, b) => b.pt - a.pt);
+        const top3 = entries.slice(0, 3).map((e, i) => ({
+            rank: i + 1,
+            user_name: e.user_name,
+            pt: e.pt
+        }));
+        return json({
+            ok: true,
+            results: top3
+        }, 200);
+    }
     // 未定義 action
     return err("Unknown action", 400);
 });
