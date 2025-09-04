@@ -3,44 +3,63 @@ import { Box, Typography, Button } from '@mui/material';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
-type UsernameRow = { user_name: string };
-
-// decide-and-route のレスポンス想定
-type RouteEntry = { tab_id: string; to: string };
 type DecideRouteResp = {
 	ok: boolean;
 	matched: boolean;
-	leader_tab_id?: string;
-	routes?: RouteEntry[];
-	counts?: { ready: number; users: number };
+	to?: string;
+	finished?: boolean;   // /lastanswer 遷移時に true が来る想定
+	now_host?: boolean;
+	round?: number;
+	room_name?: string;
+	n?: number;
+	N?: number;
+	counts?: { a: number; b: number };
+	reason?: string;
+	error?: string;
 };
 
-const POLL_MS_ACTIVE = 3000;  // タブが見えている間のポーリング間隔
-const POLL_MS_HIDDEN = 15000; // タブが非表示のときの間隔（負荷軽減）
+// polling-api の get-room-info の戻り値型
+type RoomInfoResp = {
+	ok: boolean;
+	room_name: string | null;
+	num_of_rounds: number | null;
+	members: string[];
+	num_of_nowusers: number; // 人数
+	error?: string;
+};
+
+type MarkReadyResp = {
+	ok: boolean;
+	row?: any;
+	error?: string;
+};
+
+const POLL_MS_ACTIVE = 3000;
+const POLL_MS_HIDDEN = 15000;
 
 function arraysEqual(a: string[], b: string[]) {
 	if (a.length !== b.length) return false;
 	for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
 	return true;
 }
-
-// 追加: sessionStorage から tab_id / user_name を取得
 const getTabIdFromSession = () => sessionStorage.getItem('tab_id') ?? null;
-const getUserNameFromSession = () => sessionStorage.getItem('user_name') ?? null;
 
 const Standby: React.FC = () => {
-	const [calling, setCalling] = useState(false);
 	const [errMsg, setErrMsg] = useState<string | null>(null);
-	const [usernames, setUsernames] = useState<string[]>([]);
 
-	// 「準備完了」送信の状態
-	const [readyState, setReadyState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+	const [myRoomName, setMyRoomName] = useState<string | null>(null);
+	const [myNumOfR, setMyNumOfR] = useState<number | null>(null); // 表示上は round数
+	const [roomUsernames, setRoomUsernames] = useState<string[]>([]);
+	const [num_of_nowusers, setNumOfNowUsers] = useState<number>(0);
+
+	const [readyState, setReadyState] =
+		useState<'idle' | 'sending' | 'done' | 'error'>('idle');
 	const [readyMsg, setReadyMsg] = useState<string | null>(null);
 
 	const cancelledRef = useRef(false);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const inFlightRef = useRef(false);
-	const routedRef = useRef(false); // 一度遷移したら true にしてポーリング停止
+	const routedRef = useRef(false);
 
 	const navigate = useNavigate();
 
@@ -59,45 +78,53 @@ const Standby: React.FC = () => {
 		setErrMsg(null);
 
 		try {
-			// 1) ユーザー一覧（10分以内）を取得
-			const { data: usersData, error: usersErr } =
-				await supabase.functions.invoke<UsernameRow[]>('dynamic-api', {
-					body: { method: 'send-username-list' }
-				});
-			if (cancelledRef.current || routedRef.current) return;
+			const myTab = getTabIdFromSession();
 
-			if (usersErr) {
-				setErrMsg(usersErr.message ?? 'Edge Function calling : failed (user list)');
-			} else {
-				const names =
-					(usersData ?? [])
-						.filter((row): row is UsernameRow => !!row && typeof (row as any).user_name === 'string')
-						.map((row) => row.user_name);
-				// 変化があるときだけ更新（無駄な再描画を抑制）
-				setUsernames((prev) => (arraysEqual(prev, names) ? prev : names));
+			// 自部屋情報（polling-api / get-room-info）
+			if (myTab) {
+				const { data: infoData, error: infoErr } =
+					await supabase.functions.invoke<RoomInfoResp>('polling-api', {
+						body: { action: 'get-room-info', tab_id: myTab },
+					});
+				if (cancelledRef.current || routedRef.current) return;
+
+				if (infoErr) {
+					setErrMsg((prev) => prev ?? (infoErr.message || 'failed: get-room-info'));
+				} else if (!infoData?.ok) {
+					setErrMsg((prev) => prev ?? (infoData?.error || 'get-room-info error'));
+					setMyRoomName(null);
+					setMyNumOfR(null);
+					setRoomUsernames([]);
+					setNumOfNowUsers(0);
+				} else {
+					setMyRoomName(infoData.room_name ?? null);
+					setMyNumOfR(
+						typeof infoData.num_of_rounds === 'number' ? infoData.num_of_rounds : null
+					);
+					setRoomUsernames((prev) =>
+						arraysEqual(prev, infoData.members ?? []) ? prev : (infoData.members ?? [])
+					);
+					setNumOfNowUsers(
+						typeof infoData.num_of_nowusers === 'number' ? infoData.num_of_nowusers : 0
+					);
+				}
 			}
 
-			// 2) 直後にルーティング判定
-			const { data: routeData, error: routeErr } =
-				await supabase.functions.invoke<DecideRouteResp>('dynamic-api', {
-					body: { method: 'decide-and-route' }
-				});
+			// ルーティング判定（main-api / decide-and-route）
+			if (myTab) {
+				const { data: routeData, error: routeErr } =
+					await supabase.functions.invoke<DecideRouteResp>('polling-api', {
+						body: { action: 'decide-and-route', tab_id: myTab },
+					});
+				if (cancelledRef.current || routedRef.current) return;
 
-			if (cancelledRef.current || routedRef.current) return;
-
-			if (routeErr) {
-				// 判定エラーは致命ではないので、メッセージだけ出して次回へ
-				setErrMsg((prev) => prev ?? routeErr.message ?? 'Edge Function calling : failed (decide-and-route)');
-			} else if (routeData?.ok && routeData.matched && Array.isArray(routeData.routes)) {
-				const myTab = getTabIdFromSession();
-				if (myTab) {
-					const mine = routeData.routes.find((r) => r.tab_id === myTab);
-					if (mine?.to && !routedRef.current) {
-						routedRef.current = true;            // 多重遷移防止
-						if (timerRef.current) clearTimeout(timerRef.current);
-						navigate(mine.to);                   // 例: "/parenttopick" or "/childwating"
-						return;
-					}
+				if (routeErr) {
+					setErrMsg((prev) => prev ?? (routeErr.message || 'failed: decide-and-route'));
+				} else if (routeData?.ok && routeData.matched && routeData.to) {
+					routedRef.current = true;
+					if (timerRef.current) clearTimeout(timerRef.current);
+					navigate(routeData.to);
+					return;
 				}
 			}
 		} catch (e: any) {
@@ -108,33 +135,29 @@ const Standby: React.FC = () => {
 		}
 	};
 
-	// 準備完了を Supabase へ記録（tab_id / user_name も一緒に保存）
+	// 準備完了 → only-once-api に tab_id を送る
 	const handleReadyClick = async () => {
 		if (readyState === 'sending' || readyState === 'done') return;
 		setReadyState('sending');
 		setReadyMsg(null);
 
 		const tab_id = getTabIdFromSession();
-		const user_name = getUserNameFromSession();
-
-		if (!tab_id || !user_name) {
+		if (!tab_id) {
 			setReadyState('error');
-			setReadyMsg('tab_id または user_name が見つかりません（前ページでの保存を確認）');
+			setReadyMsg('tab_id が見つかりません（前ページでの保存を確認）');
 			return;
 		}
 
 		try {
-			const { error } = await supabase
-				.from('is_ready')
-				.insert({
-					is_ready: true,   // 既存カラム
-					tab_id,           // 追加
-					user_name         // 追加
-				}); // id/created_at はDB側 default
-
+			const { data, error } = await supabase.functions.invoke<MarkReadyResp>('only-once-api', {
+				body: { action: 'mark-ready', tab_id }, // ← params ではなくトップレベルで送る
+			});
 			if (error) {
 				setReadyState('error');
 				setReadyMsg(error.message ?? '準備完了の記録に失敗しました');
+			} else if (!data?.ok) {
+				setReadyState('error');
+				setReadyMsg(data?.error ?? '準備完了の記録に失敗しました');
 			} else {
 				setReadyState('done');
 				setReadyMsg('準備完了を記録しました');
@@ -147,11 +170,8 @@ const Standby: React.FC = () => {
 
 	useEffect(() => {
 		cancelledRef.current = false;
-
-		// 初回即時実行
 		pollOnce();
 
-		// タブ可視状態の変化で即ポーリング
 		const onVis = () => {
 			if (!cancelledRef.current && !routedRef.current) {
 				if (timerRef.current) clearTimeout(timerRef.current);
@@ -159,7 +179,6 @@ const Standby: React.FC = () => {
 			}
 		};
 		document.addEventListener('visibilitychange', onVis);
-
 		return () => {
 			cancelledRef.current = true;
 			if (timerRef.current) clearTimeout(timerRef.current);
@@ -173,42 +192,24 @@ const Standby: React.FC = () => {
 				朝までそれ正解
 			</Typography>
 
-			{errMsg && (
-				<Typography color="error" sx={{ mt: 1 }}>
-					{errMsg}
-				</Typography>
-			)}
+			{errMsg && <Typography color="error" sx={{ mt: 1 }}>{errMsg}</Typography>}
 
-			<Box
-				mt={4}
-				mb={4}
-				width={400}
-				height={300}
-				display="flex"
-				flexDirection="column"
-				alignItems="center"
-				justifyContent="center"
-				bgcolor="#ccc"
-				border="1px solid #888"
-			>
-				<Typography variant="h5" component="div" fontStyle="italic" mb={2}>
-					10分以内の名前のリスト
-				</Typography>
-
-				<Box component="ul" sx={{ listStyle: 'disc', pl: 4, fontSize: '1.5rem', fontStyle: 'italic', m: 0 }}>
-					{usernames.length > 0 ? (
-						usernames.map((name) => <li key={name}>{name}</li>)
-					) : (
-						<li style={{ listStyle: 'none', fontStyle: 'normal', opacity: 0.8 }}>
-							（10分以内のユーザーなし）
-						</li>
-					)}
+			<Box mt={3} width={520} p={2} border="1px solid #888" borderRadius={2} bgcolor="#f7f7f7">
+				<Typography variant="h6" gutterBottom>現在の部屋情報</Typography>
+				<Typography>room name: <b>{myRoomName ?? '—'}</b></Typography>
+				<Typography>round数: <b>{myNumOfR ?? '—'}</b></Typography>
+				<Typography>この部屋の人数: <b>{num_of_nowusers}</b></Typography>
+				<Typography sx={{ mt: 1 }}>この部屋のメンバー:</Typography>
+				<Box component="ul" sx={{ listStyle: 'disc', pl: 4, m: 0 }}>
+					{(roomUsernames && roomUsernames.length > 0)
+						? roomUsernames.map((u) => <li key={u}>{u}</li>)
+						: <li style={{ listStyle: 'none', opacity: 0.7 }}>（まだメンバーがいません）</li>}
 				</Box>
 			</Box>
 
 			<Button
 				variant="outlined"
-				sx={{ width: 120, fontSize: '1.2rem' }}
+				sx={{ width: 120, fontSize: '1.2rem', mt: 4 }}
 				onClick={handleReadyClick}
 				disabled={readyState === 'sending' || readyState === 'done'}
 			>
@@ -216,10 +217,7 @@ const Standby: React.FC = () => {
 			</Button>
 
 			{readyMsg && (
-				<Typography
-					sx={{ mt: 1 }}
-					color={readyState === 'error' ? 'error' : 'primary'}
-				>
+				<Typography sx={{ mt: 1 }} color={readyState === 'error' ? 'error' : 'primary'}>
 					{readyMsg}
 				</Typography>
 			)}
@@ -228,5 +226,4 @@ const Standby: React.FC = () => {
 };
 
 export default Standby;
-
 

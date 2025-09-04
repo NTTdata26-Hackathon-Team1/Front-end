@@ -5,13 +5,40 @@ import { supabase } from './supabaseClient';
 
 const POLL_MS = 2000; // 2秒おきに確認
 
+// ★ 追加: tab_id の取得ヘルパー（localStorage → sessionStorage → URL ?tab_id=）
+function resolveTabId(): string | null {
+    try {
+        const ls = window.localStorage.getItem('tab_id') ?? window.localStorage.getItem('tabId');
+        if (ls && ls.trim()) return ls.trim();
+
+        const ss = window.sessionStorage.getItem('tab_id') ?? window.sessionStorage.getItem('tabId');
+        if (ss && ss.trim()) return ss.trim();
+
+        const q = new URLSearchParams(window.location.search);
+        const fromQuery = (q.get('tab_id') ?? q.get('tabId'))?.trim() || '';
+        if (fromQuery) return fromQuery;
+
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+type GetRoundResp = { ok: boolean; round?: number; error?: string };
+
 const ParentWaiting: React.FC = () => {
     const navigate = useNavigate();
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    // ★ 追加: ラウンド表示用
+    const [round, setRound] = useState<number | null>(null);
+    const [roundLoading, setRoundLoading] = useState<boolean>(false);
+
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const inFlightRef = useRef(false);
     const cancelledRef = useRef(false);
     const routedRef = useRef(false); // 遷移したらポーリング停止
+    const tabIdRef = useRef<string | null>(null); // ★ 追加: tab_id を保持
 
     const scheduleNext = () => {
         if (cancelledRef.current || routedRef.current) return;
@@ -27,10 +54,21 @@ const ParentWaiting: React.FC = () => {
         setErrorMsg(null);
 
         try {
-            const { data, error } = await supabase.functions.invoke<{ ok: boolean; ready?: boolean }>(
-                'clever-handler',
-                { body: { method: 'are-children-answers-complete' } } // 引数なし
-            );
+            const tab_id = tabIdRef.current;
+            if (!tab_id) {
+                setErrorMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
+                return;
+            }
+
+            // ★ 変更: are-children-answers-complete を polling-api に投げる（tab_id を渡す）
+            const { data, error } = await supabase.functions.invoke<{
+                ok: boolean;
+                ready?: boolean;
+                a?: number;
+                b?: number;
+            }>('polling-api', {
+                body: { method: 'are-children-answers-complete', tab_id },
+            });
 
             if (error) {
                 setErrorMsg(error.message ?? '確認中にエラーが発生しました');
@@ -49,9 +87,40 @@ const ParentWaiting: React.FC = () => {
         }
     };
 
+    // ★ 追加: 画面起動時に round を取得して左上に表示
+    const fetchRound = async () => {
+        const tab_id = tabIdRef.current;
+        if (!tab_id) {
+            setErrorMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
+            return;
+        }
+        setRoundLoading(true);
+        try {
+            const { data, error } = await supabase.functions.invoke<GetRoundResp>('main-api', {
+                body: { method: 'get-round', params: { tab_id } },
+            });
+            if (error) {
+                setErrorMsg(error.message ?? 'get-round の呼び出しに失敗しました');
+            } else if (!data?.ok || typeof data.round !== 'number') {
+                setErrorMsg(data?.error ?? 'round の取得に失敗しました');
+            } else {
+                setRound(data.round);
+            }
+        } catch (e: any) {
+            setErrorMsg(e?.message ?? 'round の取得に失敗しました（unknown error）');
+        } finally {
+            setRoundLoading(false);
+        }
+    };
+
     useEffect(() => {
         cancelledRef.current = false;
-        // 初回即実行
+        tabIdRef.current = resolveTabId(); // 初回に tab_id を確定
+
+        // 左上ラウンド表示の初期化
+        fetchRound();
+
+        // 初回即ポーリング開始
         pollOnce();
 
         return () => {
@@ -68,7 +137,15 @@ const ParentWaiting: React.FC = () => {
             alignItems="center"
             justifyContent="center"
             mt={8}
+            sx={{ position: 'relative', width: '100%' }}
         >
+            {/* ★ 追加: 左上のラウンド表示 */}
+            <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    第 {roundLoading ? '…' : (round ?? '—')} ターン
+                </Typography>
+            </Box>
+
             <Typography variant="h4" gutterBottom>
                 回答入力中です
             </Typography>
@@ -85,3 +162,4 @@ const ParentWaiting: React.FC = () => {
 };
 
 export default ParentWaiting;
+
