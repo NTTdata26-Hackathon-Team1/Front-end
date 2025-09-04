@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import './Standby.css';
+
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import DanmakuInput from './DanmakuInput';
 
 type DecideRouteResp = {
 	ok: boolean;
@@ -187,41 +189,48 @@ const Standby: React.FC = () => {
 	}, []);
 
 	return (
-		<Box display="flex" flexDirection="column" alignItems="center" mt={8}>
-			<Typography variant="h2" component="h1" gutterBottom>
-				朝までそれ正解
-			</Typography>
+		<div className="standby-bg">
+			{/* 雲・塔・木 */}
+			<img src="/pixel_cloud_transparent.png" className="cloud-img cloud-left-up" alt="cloud" />
+			<img src="/pixel_cloud_transparent.png" className="cloud-img cloud-right-up" alt="cloud" />
+			<img src="/pixel_tower.png" className="tower-img tower-left" alt="tower" />
+			<img src="/pixel_tower.png" className="tower-img tower-right" alt="tower" />
+			<img src="/pixel_tree.png" className="tree-img tree-left" alt="tree" />
+			<img src="/pixel_tree.png" className="tree-img tree-right" alt="tree" />
 
-			{errMsg && <Typography color="error" sx={{ mt: 1 }}>{errMsg}</Typography>}
+			{/* タイトル・サブタイトル */}
+			<h1 className="standby-title">朝までそれ正解</h1>
 
-			<Box mt={3} width={520} p={2} border="1px solid #888" borderRadius={2} bgcolor="#f7f7f7">
-				<Typography variant="h6" gutterBottom>現在の部屋情報</Typography>
-				<Typography>room name: <b>{myRoomName ?? '—'}</b></Typography>
-				<Typography>round数: <b>{myNumOfR ?? '—'}</b></Typography>
-				<Typography>この部屋の人数: <b>{num_of_nowusers}</b></Typography>
-				<Typography sx={{ mt: 1 }}>この部屋のメンバー:</Typography>
-				<Box component="ul" sx={{ listStyle: 'disc', pl: 4, m: 0 }}>
+			{/* 中央の緑枠 */}
+			<div className="center-box">
+				{errMsg && <div style={{ color: '#ff69b4', marginBottom: 8 }}>{errMsg}</div>}
+				<div style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: 10 }}>現在の部屋情報</div>
+				<div>room name: <b>{myRoomName ?? '—'}</b></div>
+				<div>round数: <b>{myNumOfR ?? '—'}</b></div>
+				<div>この部屋の人数: <b>{num_of_nowusers}</b></div>
+				<div style={{ marginTop: 8 }}>この部屋のメンバー:</div>
+				<ul style={{ listStyle: 'disc', paddingLeft: 24, margin: 0, textAlign: 'center' }}>
 					{(roomUsernames && roomUsernames.length > 0)
 						? roomUsernames.map((u) => <li key={u}>{u}</li>)
 						: <li style={{ listStyle: 'none', opacity: 0.7 }}>（まだメンバーがいません）</li>}
-				</Box>
-			</Box>
-
-			<Button
-				variant="outlined"
-				sx={{ width: 120, fontSize: '1.2rem', mt: 4 }}
-				onClick={handleReadyClick}
-				disabled={readyState === 'sending' || readyState === 'done'}
-			>
-				{readyState === 'sending' ? '送信中…' : readyState === 'done' ? '送信済み' : '準備完了'}
-			</Button>
-
-			{readyMsg && (
-				<Typography sx={{ mt: 1 }} color={readyState === 'error' ? 'error' : 'primary'}>
-					{readyMsg}
-				</Typography>
-			)}
-		</Box>
+				</ul>
+				<button
+					className="standby-btn"
+					onClick={handleReadyClick}
+					disabled={readyState === 'sending' || readyState === 'done'}
+					style={{ marginTop: 24 }}
+				>
+					{readyState === 'sending' ? '送信中…' : readyState === 'done' ? '送信済み' : '準備完了'}
+				</button>
+				{readyMsg && (
+					<div style={{ marginTop: 8, color: readyState === 'error' ? '#ff69b4' : '#1fa32b' }}>
+						{readyMsg}
+					</div>
+				)}
+			</div>
+            <DanmakuInput fixedBottom />
+			
+		</div>
 	);
 };
 

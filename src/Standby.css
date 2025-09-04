@@ -1,0 +1,85 @@
+
+.standby-bg {
+  background: #18194a;
+  min-height: 100vh;
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.standby-title {
+  font-family: 'Pixel', 'Arial', sans-serif;
+  color: #fff;
+  font-size: 8vw;
+  text-shadow: 0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4;
+  text-align: center;
+  margin-top: 0vw;
+  margin-bottom: 3vw;
+}
+
+.cloud-img {
+  position: absolute;
+  width: 8vw;
+  min-width: 60px;
+  z-index: 1;
+}
+.cloud-left-up {position: absolute;left: 15vw;top: 2vw;width: 15vw;height: 10vw;}
+.cloud-right-up {position: absolute;right: -2vw;top: 10vw;width: 20vw;height: 8vw;transform: scaleX(-1);}
+.tower-img {position: absolute;bottom: 8vw;width: 20vw;min-width: 100px;z-index: 2;}
+.tower-left { left: -5vw;transform: scaleX(-1);  }
+.tower-right { right: -5vw;}
+.tree-img {
+  position: absolute;
+  bottom: 8vw;
+  width: 12vw;
+  min-width: 50px;
+  z-index: 2;
+}
+.tree-left { left: 13vw; }
+.tree-right { right: 13vw; }
+
+.center-box {
+  background: #1fa32b;
+  border-radius: 1vw;
+  box-shadow: 0 0 2vw #0008;
+  width: 30vw;
+  min-width: 200px;
+  max-width: 80vw;
+  margin-bottom: 4vw;
+  padding: 1vw 3vw;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+  font-size : 1.1vw;
+}
+.standby-btn {
+  background: #ff69b4;
+  color: #fff;
+  font-size: 1vw;
+  border: none;
+  border-radius: 0.7vw;
+  padding: 1vw 4vw;
+  margin-top: 2vw;
+  box-shadow: 0 0 1vw #0006;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.standby-btn:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+
+/* レスポンシブ調整 */
+@media (max-width: 500px) {
+    .standby-title { font-size: 10vw; margin-top: 10vw; }
+    .standby-subtitle { font-size: 4vw; }
+    .standby-center-box { width: 80vw; height: 40vw; min-width: 180px; min-height: 120px; }
+    .standby-user-list { font-size: 4vw; }
+    .standby-start-btn { font-size: 5vw; padding: 2vw 10vw; border-radius: 4vw; }
+    .standby-ground { height: 10vw; }
+}
+

@@ -3,6 +3,7 @@ import { Typography, TextField, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import DanmakuInput from './DanmakuInput';
+import './TopMenu.css';
 
 // ---- ID ユーティリティ ----
 export const getTabId = () => {
@@ -194,117 +195,119 @@ const TopMenu: React.FC = () => {
 
     return (
         <>
-            <Box display="flex" flexDirection="column" alignItems="center" mt={4}>
-                <Typography variant="h2" component="h1" gutterBottom>
-                    朝までそれ正解
-                </Typography>
+            <h1 className="topmenu-title">朝までそれ正解</h1>
+            {/* 雲・花・旗、きのこ */}
+			<img src="/pixel_cloud_transparent.png" className="cloud-img cloud-left1" alt="cloud" />
+			<img src="/pixel_cloud_transparent.png" className="cloud-img cloud-right2" alt="cloud" />
+            <img src="/pixel_flower.png" alt="flower" className="bottom-img flower-left" />
+            <img src="/pixel_mushroom.png" alt="mushroom" className="bottom-img mushroom-left" />
+            <img src="/pixel_flag.png" alt="flag" className="bottom-img flag-left" />
+            <img src="/pixel_flag.png" alt="flag" className="bottom-img flag-right" />
+            <img src="/pixel_mushroom.png" alt="mushroom" className="bottom-img mushroom-right" />
+            <img src="/pixel_flower.png" alt="flower" className="bottom-img flower-right" />
 
-                {/* 最上部：ニックネーム */}
-                <Box width="100%" maxWidth={520} mt={1}>
-                    <TextField
-                        label="ニックネーム"
-                        variant="outlined"
-                        value={name}
-                        onChange={e => setName(e.target.value)} />
-                    <Button type="submit" variant="contained" disabled={!name.trim() || submitting} color="primary">
-                        送信
-                    </Button>
-                </Box>
-
-                {/* 部屋作成 */}
-                <Box width="100%" maxWidth={520} mt={4}>
-                    <Typography variant="h5" component="h2">
-                        部屋を作る
-                    </Typography>
-
-                    <Box mt={2} display="flex" flexDirection="column" gap={2}>
+            <div className="topmenu-form-box">
+                {/* ...既存のフォーム・部屋作成・参加部分... */}
+                <Box display="flex" flexDirection="column" alignItems="center" mt={4}>
+                    {/* 最上部：ニックネーム */}
+                    <Box width="100%" maxWidth={520} mt={1}>
                         <TextField
-                            label="room name"
+                            label="ニックネーム"
                             variant="outlined"
-                            value={roomName}
-                            onChange={(e) => setRoomName(e.target.value)}
-                            inputProps={{ maxLength: 50 }}
-                            fullWidth
-                        />
-
-                        <TextField
-                            label="round数"
-                            variant="outlined"
-                            type="number"
-                            value={rounds}
-                            onChange={(e) => setRounds(e.target.value)}
-                            inputProps={{ inputMode: 'numeric', step: 1, min: 1 }}
-                            helperText="正の整数を入力"
-                            fullWidth
-                        />
-
-                        {/* 人数 + 右側に「部屋を作成」ボタン */}
-                        <Box display="flex" gap={2} alignItems="center">
+                            value={name}
+                            onChange={e => setName(e.target.value)} />
+                        <Button type="submit" variant="contained" disabled={!name.trim() || submitting} color="primary">
+                            送信
+                        </Button>
+                    </Box>
+                    {/* 部屋作成 */}
+                    <Box width="100%" maxWidth={520} mt={4}>
+                        <Typography variant="h5" component="h2">
+                            部屋を作る
+                        </Typography>
+                        <Box mt={2} display="flex" flexDirection="column" gap={2}>
                             <TextField
-                                label="人数"
+                                label="room name"
+                                variant="outlined"
+                                value={roomName}
+                                onChange={(e) => setRoomName(e.target.value)}
+                                inputProps={{ maxLength: 50 }}
+                                fullWidth
+                            />
+                            <TextField
+                                label="round数"
                                 variant="outlined"
                                 type="number"
-                                value={players}
-                                onChange={(e) => setPlayers(e.target.value)}
+                                value={rounds}
+                                onChange={(e) => setRounds(e.target.value)}
                                 inputProps={{ inputMode: 'numeric', step: 1, min: 1 }}
                                 helperText="正の整数を入力"
-                                sx={{ flex: 1 }}
+                                fullWidth
                             />
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleCreateRoom}
-                                disabled={!allValidCreate || submitting}
-                                sx={{ whiteSpace: 'nowrap', height: 56 }}
-                            >
-                                部屋を作成
-                            </Button>
+                            {/* 人数 + 右側に「部屋を作成」ボタン */}
+                            <Box display="flex" gap={2} alignItems="center">
+                                <TextField
+                                    label="人数"
+                                    variant="outlined"
+                                    type="number"
+                                    value={players}
+                                    onChange={(e) => setPlayers(e.target.value)}
+                                    inputProps={{ inputMode: 'numeric', step: 1, min: 1 }}
+                                    helperText="正の整数を入力"
+                                    sx={{ flex: 1 }}
+                                />
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={handleCreateRoom}
+                                    disabled={!allValidCreate || submitting}
+                                    sx={{ whiteSpace: 'nowrap', height: 56 }}
+                                >
+                                    部屋を作成
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Box>
+                    {errorText && (
+                        <Typography color="error" mt={2}>
+                            {errorText}
+                        </Typography>
+                    )}
+                    {/* ===== 部屋に参加する（ボタン一覧） ===== */}
+                    <Box width="100%" maxWidth={520} mt={6}>
+                        <Typography variant="h5" component="h2">
+                            部屋に参加する
+                        </Typography>
+                        {roomsErr && (
+                            <Typography color="error" sx={{ mt: 1 }}>
+                                {roomsErr}
+                            </Typography>
+                        )}
+                        <Box mt={2} display="flex" flexDirection="column" gap={1.5}>
+                            {rooms.length === 0 ? (
+                                <Typography sx={{ opacity: 0.7 }}>（30分以内に作成された部屋がありません）</Typography>
+                            ) : (
+                                rooms.map((r) => (
+                                    <Button
+                                        key={r.room_name}
+                                        variant="outlined"
+                                        onClick={() => handleJoinRoom(r.room_name)}
+                                        disabled={!name.trim() || joining === r.room_name}
+                                        sx={{ display: 'flex', justifyContent: 'space-between', textTransform: 'none' }}
+                                    >
+                                        <span>
+                                            room name: <b>{r.room_name}</b>
+                                        </span>
+                                        <span>
+                                            人数: <b>{r.num_of_nowusers ?? 0}</b>
+                                        </span>
+                                    </Button>
+                                ))
+                            )}
                         </Box>
                     </Box>
                 </Box>
-
-                {errorText && (
-                    <Typography color="error" mt={2}>
-                        {errorText}
-                    </Typography>
-                )}
-
-                {/* ===== 部屋に参加する（ボタン一覧） ===== */}
-                <Box width="100%" maxWidth={520} mt={6}>
-                    <Typography variant="h5" component="h2">
-                        部屋に参加する
-                    </Typography>
-
-                    {roomsErr && (
-                        <Typography color="error" sx={{ mt: 1 }}>
-                            {roomsErr}
-                        </Typography>
-                    )}
-
-                    <Box mt={2} display="flex" flexDirection="column" gap={1.5}>
-                        {rooms.length === 0 ? (
-                            <Typography sx={{ opacity: 0.7 }}>（30分以内に作成された部屋がありません）</Typography>
-                        ) : (
-                            rooms.map((r) => (
-                                <Button
-                                    key={r.room_name}
-                                    variant="outlined"
-                                    onClick={() => handleJoinRoom(r.room_name)}
-                                    disabled={!name.trim() || joining === r.room_name}
-                                    sx={{ display: 'flex', justifyContent: 'space-between', textTransform: 'none' }}
-                                >
-                                    <span>
-                                        room name: <b>{r.room_name}</b>
-                                    </span>
-                                    <span>
-                                        人数: <b>{r.num_of_nowusers ?? 0}</b>
-                                    </span>
-                                </Button>
-                            ))
-                        )}
-                    </Box>
-                </Box>
-            </Box>
+            </div>
             <DanmakuInput fixedBottom />
         </>
     );

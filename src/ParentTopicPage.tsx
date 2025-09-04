@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, TextField, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import './ParentTopicPage.css';
+import DanmakuInput from './DanmakuInput';
 
 // sessionStorage から引き継ぎ
 const getTabId = () => sessionStorage.getItem('tab_id') ?? '';
@@ -96,57 +97,58 @@ const ParentTopicPage: React.FC = () => {
     };
 
     return (
-        <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            mt={8}
-            sx={{ position: 'relative', width: '100%' }}
-        >
-            {/* 画面左上表示：ラウンド */}
-            <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                    第 {roundLoading ? '…' : (round ?? '—')} ターン
-                </Typography>
-            </Box>
+        <div className="parenttopick-bg">
+            {/* 雲 */}
+            <img src="/pixel_cloud_transparent.png" alt="" className="parenttopick-cloud left" />
+            <img src="/pixel_cloud_transparent.png" alt="" className="parenttopick-cloud right2" />
+            <img src="/pixel_cloud_small.png" alt="" className="parenttopick-cloud left2" />
+            <img src="/pixel_cloud_small.png" alt="" className="parenttopick-cloud right3" />
+            <img src="/pixel_cloud_transparent.png" alt="" className="parenttopick-cloud left3" />
+            {/* キャラクター */}
+            <img src="/pixel_character.png" alt="" className="parenttopick-character" />
+            {/* ひまわり */}
+            <img src="/pixel_sunflower.png" alt="" className="parenttopick-sunflower" />
+            {/* 火 */}
+            <div className="parenttopick-fire-row">
+                <img src="/pixel_fire.png" alt="" className="parenttopick-fire" />
+                <img src="/pixel_fire.png" alt="" className="parenttopick-fire" />
+                <img src="/pixel_fire.png" alt="" className="parenttopick-fire" />
+            </div>
+            {/* 木盆栽 */}
+            <img src="/pixel_tree_bonsai.png" alt="" className="parenttopick-tree-bonsai" />
 
-            <Typography variant="h4" component="h1" gutterBottom>
-                あなたは親です
-            </Typography>
-            <Typography variant="subtitle1" gutterBottom>
-                お題を入力してください
-            </Typography>
+            {/* サブタイトル（右上） */}
+            <div className="parenttopick-subtitle">ASAMADE SORE SEIKAI</div>
 
-            <Box
-                component="form"
-                onSubmit={handleSubmit}
-                display="flex"
-                alignItems="center"
-                gap={2}
-                mt={4}
-            >
-                <TextField
-                    label="お題入力欄"
-                    variant="outlined"
+            {/* タイトル（中央大きく）＋ round数 */}
+            <div className="parenttopick-title">
+                あなたは親です<br />お題を入力してください<br />
+                <span className="parenttopick-round">
+                    ROUND {roundLoading ? '…' : (round ?? '—')}
+                </span>
+            </div>
+
+            {/* 入力フォーム */}
+            <form className="parenttopick-form" onSubmit={handleSubmit} style={{ marginTop: '2vw' }}>
+                <input
+                    className="parenttopick-input"
+                    type="text"
+                    placeholder="お題入力欄"
                     value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
+                    onChange={e => setTopic(e.target.value)}
                 />
-                <Button
+                <button
+                    className="parenttopick-btn"
                     type="submit"
-                    variant="contained"
                     disabled={!topic.trim() || sending}
-                    color="primary"
                 >
                     {sending ? '送信中…' : '送信'}
-                </Button>
-            </Box>
-
-            {err && (
-                <Typography color="error" sx={{ mt: 2 }}>
-                    {err}
-                </Typography>
-            )}
-        </Box>
+                </button>
+            </form>
+            {err && <div style={{ color: '#ff3333', marginTop: '1vw', textAlign: 'center', fontWeight: 'bold' }}>{err}</div>}
+        <DanmakuInput fixedBottom />
+        </div>
+        
     );
 };
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Typography, Box, CircularProgress } from '@mui/material';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import './ChildWaiting.css';
 
 const POLL_MS_ACTIVE = 2000;
 const POLL_MS_HIDDEN = 8000;
@@ -116,34 +116,23 @@ const ChildWaiting: React.FC = () => {
     }, []);
 
     return (
-        <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            mt={8}
-            sx={{ position: 'relative', width: '100%' }}
-        >
-            {/* 左上のラウンド表示 */}
-            <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                    第 {roundLoading ? '…' : (round ?? '—')} ターン
-                </Typography>
-            </Box>
+        <div className="childwaiting-bg">
+                {/* イラスト */}
+			    <img src="/pixel_cloud_small.png" alt="" className="childwaiting-cloud left" />
+			    <img src="/pixel_cloud_transparent.png" alt="" className="childwaiting-cloud right" />
+                <img src="/pixel_character.png" alt="" className="childwaiting-character" />
+                <img src="/pixel_sunflower.png" alt="" className="childwaiting-sunflower" />
+                <img src="/pixel_sunset.png" alt="" className="childwaiting-sunset" />
+                <img src="/pixel_tower.png" alt="" className="childwaiting-tower" />
+                <img src="/pixel_tree_bonsai.png" alt="" className="childwaiting-tree-bonsai" />
+            {/* タイトル（中央大きく）＋ round数 */}
+            <div className="childwaiting-title">親がお題を入力中です</div>
+            <div className="childwaiting-round">ROUND{roundLoading ? '…' : (round ?? '—')} </div>
 
-            <Typography variant="h4" gutterBottom>
-                お題の入力を待っています
-            </Typography>
-            <Typography variant="subtitle1" gutterBottom>
-                親が入力中です…
-            </Typography>
-            <CircularProgress size={80} />
             {errMsg && (
-                <Typography color="error" sx={{ mt: 2 }}>
-                    {errMsg}
-                </Typography>
+                <div className="childwaiting-error">{errMsg}</div>
             )}
-        </Box>
+        </div>
     );
 };
 
