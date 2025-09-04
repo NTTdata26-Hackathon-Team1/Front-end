@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Typography, TextField, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import DanmakuInput from './DanmakuInput';
 
 // ---- ID ユーティリティ ----
 // タブ単位（同タブ内の画面遷移やリロードで維持。タブを閉じると消える）
@@ -111,7 +112,7 @@ const TopMenu: React.FC = () => {
     };
 
     return (
-        <Box display="flex" flexDirection="column" alignItems="center" mt={8}>
+        <><Box display="flex" flexDirection="column" alignItems="center" mt={8}>
             <Typography variant="h2" component="h1" gutterBottom>
                 朝までそれ正解
             </Typography>
@@ -121,8 +122,7 @@ const TopMenu: React.FC = () => {
                     label="ニックネーム"
                     variant="outlined"
                     value={name}
-                    onChange={e => setName(e.target.value)}
-                />
+                    onChange={e => setName(e.target.value)} />
                 <Button type="submit" variant="contained" disabled={!name.trim() || submitting} color="primary">
                     送信
                 </Button>
@@ -140,7 +140,7 @@ const TopMenu: React.FC = () => {
                 <Typography variant="body2">tab_id: {tabId}</Typography>
                 <Typography variant="body2">device_id: {deviceId}</Typography>
             </Box>
-        </Box>
+        </Box><DanmakuInput fixedBottom /></>
     );
 };
 
