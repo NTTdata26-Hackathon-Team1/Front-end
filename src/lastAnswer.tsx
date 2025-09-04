@@ -1,4 +1,25 @@
 import React from "react";
+import { supabase } from "./supabaseClient"; // ← 追加
+
+// ---- API型 ----
+type ApiResultItem = { rank: number; user_name: string; pt: number };
+type GetResultResp = { ok: boolean; results?: ApiResultItem[]; error?: string };
+
+// ---- tab_id 解決ヘルパー（既存の実装と同等）----
+function resolveTabId(): string | null {
+  try {
+    const ls = window.localStorage.getItem("tab_id") ?? window.localStorage.getItem("tabId");
+    if (ls && ls.trim()) return ls.trim();
+
+    const ss = window.sessionStorage.getItem("tab_id") ?? window.sessionStorage.getItem("tabId");
+    if (ss && ss.trim()) return ss.trim();
+
+    const q = new URLSearchParams(window.location.search);
+    const fromQuery = (q.get("tab_id") ?? q.get("tabId"))?.trim() || "";
+    if (fromQuery) return fromQuery;
+  } catch { }
+  return null;
+}
 
 // キラキラエフェクト用のコンポーネント
 const Sparkle: React.FC<{ style: React.CSSProperties }> = ({ style }) => (
@@ -49,12 +70,6 @@ const Confetti: React.FC<{ style: React.CSSProperties }> = ({ style }) => (
   </span>
 );
 
-const results = [
-  { name: "プレイヤー1", score: 120 },
-  { name: "プレイヤー2", score: 95 },
-  { name: "プレイヤー3", score: 80 },
-];
-
 const getRankIcon = (rank: number) => {
   switch (rank) {
     case 1:
@@ -71,6 +86,11 @@ const getRankIcon = (rank: number) => {
 const LastAnswer: React.FC = () => {
   const [isPressed, setIsPressed] = React.useState(false);
 
+  // APIから取得してUIに流すための state（name/score で保持）
+  const [results, setResults] = React.useState<{ name: string; score: number }[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
   // キラキラの位置・動き
   const [sparkles, setSparkles] = React.useState<
     { left: number; top: number; delay: number; duration: number }[]
@@ -80,8 +100,8 @@ const LastAnswer: React.FC = () => {
     { left: number; top: number; delay: number; duration: number; side: "left" | "right" }[]
   >([]);
 
+  // 起動時：演出の初期化（従来どおり）
   React.useEffect(() => {
-    // キラキラをランダムに生成
     const newSparkles = Array.from({ length: 18 }).map(() => ({
       left: Math.random() * 100,
       top: Math.random() * 30 + 5,
@@ -90,15 +110,53 @@ const LastAnswer: React.FC = () => {
     }));
     setSparkles(newSparkles);
 
-    // 紙吹雪をランダムに生成
     const newConfettis = Array.from({ length: 18 }).map((_, i) => ({
       left: i % 2 === 0 ? Math.random() * 8 + 2 : 92 + Math.random() * 6,
       top: Math.random() * 10 + 2,
       delay: Math.random() * 1.5,
       duration: 1.2 + Math.random() * 1.5,
-      side: (i % 2 === 0 ? "left" : "right") as "left" | "right", // 型アサーションで型エラー防止
+      side: (i % 2 === 0 ? "left" : "right") as "left" | "right",
     }));
     setConfettis(newConfettis);
+  }, []);
+
+  // 起動時：tab_id を使って only-once-api/get-result を呼ぶ
+  React.useEffect(() => {
+    (async () => {
+      setLoading(true);
+      setErrorMsg(null);
+      try {
+        const tab_id = resolveTabId();
+        if (!tab_id) {
+          setErrorMsg("tab_id が見つかりません（local/sessionStorage または URL の ?tab_id= を確認）");
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke<GetResultResp>(
+          "only-once-api",
+          { body: { method: "get-result", params: { tab_id } } }
+        );
+
+        if (error) {
+          setErrorMsg(error.message ?? "get-result の呼び出しに失敗しました");
+        } else if (!data?.ok || !Array.isArray(data.results)) {
+          setErrorMsg(data?.error ?? "結果の形式が不正です");
+        } else {
+          // rank の昇順で 1〜3位を使用し、UI用の {name, score} に変換
+          const top3 = [...data.results]
+            .sort((a, b) => a.rank - b.rank)
+            .slice(0, 3)
+            .map((r) => ({ name: r.user_name, score: r.pt }));
+
+          setResults(top3);
+        }
+      } catch (e: any) {
+        setErrorMsg(e?.message ?? "不明なエラーが発生しました");
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const handlePlayAgain = () => {
@@ -108,6 +166,9 @@ const LastAnswer: React.FC = () => {
       window.location.reload();
     }, 120);
   };
+
+  // 表示用：rank 1→3 の順で並べる（APIがrank付与なので score ソートは不要）
+  const display = results;
 
   return (
     <div
@@ -152,6 +213,7 @@ const LastAnswer: React.FC = () => {
           />
         ))}
       </div>
+
       {/* タイトル */}
       <div style={{ display: "flex", alignItems: "center", marginBottom: "1.5rem", position: "relative", zIndex: 3 }}>
         <span
@@ -173,7 +235,6 @@ const LastAnswer: React.FC = () => {
             textShadow: "0 4px 24px #eee, 0 1px 0 #fff",
             fontWeight: 900,
             color: "#222",
-            
             position: "relative",
             zIndex: 3,
           }}
@@ -192,6 +253,7 @@ const LastAnswer: React.FC = () => {
           🎉
         </span>
       </div>
+
       <h2
         style={{
           fontSize: "2rem",
@@ -203,6 +265,12 @@ const LastAnswer: React.FC = () => {
       >
         最終結果発表
       </h2>
+
+      {/* 取得エラー表示 */}
+      {errorMsg && (
+        <div style={{ color: "crimson", marginBottom: 16, zIndex: 3 }}>{errorMsg}</div>
+      )}
+
       <div
         style={{
           background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
@@ -213,28 +281,52 @@ const LastAnswer: React.FC = () => {
           zIndex: 3,
         }}
       >
-        {results
-          .sort((a, b) => b.score - a.score)
-          .map((player, idx) => (
+        {loading ? (
+          // 簡易ローディング（3行のプレースホルダ）
+          [1, 2, 3].map((rank) => (
             <div
-              key={player.name}
+              key={`sk-${rank}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "1.2rem",
+                fontSize: rank === 1 ? "1.7rem" : "1.2rem",
+                color: "#fff",
+                background: "rgba(255,255,255,0.08)",
+                borderRadius: "12px",
+                padding: "0.7em 1.2em",
+                opacity: 0.6,
+              }}
+            >
+              <span style={{ width: 40, display: "inline-block", fontSize: "2rem" }}>
+                {getRankIcon(rank)}
+              </span>
+              <span style={{ flex: 1 }}>読み込み中…</span>
+              <span style={{ fontWeight: 700, marginLeft: 16 }}>— pt</span>
+            </div>
+          ))
+        ) : (
+          display.map((player, idx) => (
+            <div
+              key={`${player.name}-${idx}`}
               style={{
                 display: "flex",
                 alignItems: "center",
                 marginBottom: "1.2rem",
                 fontSize: idx === 0 ? "1.7rem" : "1.2rem",
                 fontWeight: idx === 0 ? 700 : 500,
-                color: idx === 0 ? "#FFD700" : idx === 1 ? "#C0C0C0" : idx === 2 ? "#CD7F32" : "#fff",
+                color:
+                  idx === 0 ? "#FFD700" : idx === 1 ? "#C0C0C0" : idx === 2 ? "#CD7F32" : "#fff",
                 letterSpacing: "0.05em",
                 textShadow: idx === 0 ? "0 2px 8px #FFD700" : "0 1px 2px #000",
                 background:
                   idx === 0
                     ? "linear-gradient(90deg, #ffefba 0%, #ffffff 100%)"
                     : idx === 1
-                    ? "linear-gradient(90deg, #e0e0e0 0%, #f5f5f5 100%)"
-                    : idx === 2
-                    ? "linear-gradient(90deg, #f7d9c4 0%, #fff 100%)"
-                    : "rgba(255,255,255,0.08)",
+                      ? "linear-gradient(90deg, #e0e0e0 0%, #f5f5f5 100%)"
+                      : idx === 2
+                        ? "linear-gradient(90deg, #f7d9c4 0%, #fff 100%)"
+                        : "rgba(255,255,255,0.08)",
                 borderRadius: "12px",
                 padding: "0.7em 1.2em",
                 marginTop: idx === 0 ? 0 : "0.5em",
@@ -247,8 +339,10 @@ const LastAnswer: React.FC = () => {
               <span style={{ flex: 1 }}>{player.name}</span>
               <span style={{ fontWeight: 700, marginLeft: 16 }}>{player.score} pt</span>
             </div>
-          ))}
+          ))
+        )}
       </div>
+
       <button
         style={{
           marginTop: "2.5rem",
@@ -275,6 +369,7 @@ const LastAnswer: React.FC = () => {
       >
         もう一度プレイ
       </button>
+
       {/* アニメーションCSS */}
       <style>
         {`
