@@ -11,12 +11,14 @@ import LastAnswer from './lastAnswer';
 import SelectedAnswer from './SelectedAnswer';
 import ParentSelectAnser from './ParentSelectAnswer';
 import ChildAnswerList from './ChildAnswerList';
+import DanmakuProvider from './DanmakuProvider';
 
 
 
 function App() {
   return (
     <Router>
+      <DanmakuProvider>
       <Routes>
         <Route path="/" element={<TopMenu />} />
         <Route path="/sub" element={<SubPage />} />
@@ -30,6 +32,7 @@ function App() {
         <Route path="/selectedanswer" element={<SelectedAnswer />} />
         <Route path="/lastanswer" element={<LastAnswer />} />
       </Routes>
+      </DanmakuProvider>
     </Router>
   );
 }
