@@ -37,6 +37,19 @@ const ParentTopicPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [navigate]);
 
+  // ページ起動時：time_management を呼ぶ、バックエンドでタイマー管理
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.functions.invoke(
+        "time_management",
+        {
+          body: { action: "ping" },
+        }
+      );
+      console.log("ping:", { data, error });
+    })();
+  }, []);
+
   // ページ起動時：main-api の get-round を呼んで round を取得して表示
   useEffect(() => {
     const fetchRound = async () => {
