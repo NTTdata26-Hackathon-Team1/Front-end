@@ -1,7 +1,36 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react"; // ★ useRef 追加
 import { Typography, TextField, Button, Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
+
+async function getRandomTopicText(): Promise<string | null> {
+  // 件数だけ先に取る（head:true）
+  const { count, error: countErr } = await supabase
+    .from("topics")
+    .select("id", { count: "exact", head: true });
+
+  if (countErr || !count || count <= 0) return null;
+
+  const offset = Math.floor(Math.random() * count);
+
+  // OFFSET 指定で1件だけ取得
+  const { data, error } = await supabase
+    .from("topics")
+    .select("text")
+    .order("id", { ascending: true })
+    .range(offset, offset);
+
+  if (error || !data || data.length === 0) return null;
+  return (data[0].text as string) ?? null;
+}
+
+// ★ モックお題（フロントのみ）
+const MOCK_TOPICS = [
+  "「た」から始まる好きな朝ごはんといえば？",
+  "「と」から始まる子どもの頃にハマった遊び",
+  "「き」から始まる一度は住んでみたい街",
+  "「す」から始まる最近つい課金しちゃったもの",
+];
 
 // sessionStorage から引き継ぎ
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
@@ -14,30 +43,55 @@ const ParentTopicPage: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // 入力値の最新を参照するためのRef（タイムアウト内で使う）
+  const topicRef = useRef(topic); // ★ 追加
+  useEffect(() => {
+    topicRef.current = topic;
+  }, [topic]); // ★ 追加
+
   // 左上：ラウンド表示
   const [round, setRound] = useState<number | null>(null);
   const [roundLoading, setRoundLoading] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
-  // 20秒カウントダウンして自動遷移
+  // 20秒カウントダウン（表示のみ）
   const [secondsLeft, setSecondsLeft] = useState<number>(20);
   useEffect(() => {
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          navigate("/parentwaiting");
-          return 0;
-        }
-        return prev - 1;
-      });
+      setSecondsLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
-
     return () => clearInterval(interval);
+  }, []);
+
+  // ★ 20秒経過時のオート補完＆遷移（DB→fallbackモック）
+  useEffect(() => {
+    const timeout = window.setTimeout(async () => {
+      // 20秒経過時点の入力を確認
+      let chosen = topicRef.current.trim();
+
+      if (!chosen) {
+        // DB から取得を試す
+        const fromDb = await getRandomTopicText();
+
+        if (fromDb && fromDb.trim()) {
+          chosen = fromDb.trim();
+          setTopic(chosen); // 画面にも反映
+        } else {
+          // 失敗/空ならモックにフォールバック
+          chosen = MOCK_TOPICS[Math.floor(Math.random() * MOCK_TOPICS.length)];
+          setTopic(chosen);
+        }
+      }
+
+      // 次画面へ（親待機）
+      navigate("/parentwaiting", { state: { topic: chosen } });
+    }, 20_000);
+
+    return () => clearTimeout(timeout);
   }, [navigate]);
 
-  // ページ起動時：time_management を呼ぶ、バックエンドでタイマー管理
+  // ページ起動時：time_management を呼ぶ、バックエンドでタイマー管理（現状デバッグのまま）
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase.functions.invoke(
@@ -102,15 +156,10 @@ const ParentTopicPage: React.FC = () => {
     setErr(null);
 
     try {
-      // ← 変更点：main-api の submit-topic を呼ぶ（txt と tab_id のみ必要）
       const { data, error } = await supabase.functions.invoke<SubmitTopicResp>(
         "main-api",
         {
-          body: {
-            action: "submit-topic",
-            txt,
-            tab_id,
-          },
+          body: { action: "submit-topic", txt, tab_id },
         }
       );
 
@@ -152,7 +201,7 @@ const ParentTopicPage: React.FC = () => {
         あなたは親です
       </Typography>
       <Typography variant="subtitle1" gutterBottom>
-        お題を入力してください
+        お題を入力してください（未入力なら20秒後に自動補完）
       </Typography>
 
       <Box
@@ -179,7 +228,7 @@ const ParentTopicPage: React.FC = () => {
         </Button>
       </Box>
 
-      {/* ← ここで残り時間を表示 */}
+      {/* 残り時間表示（カウントダウンのみ。遷移はsetTimeout側で実施） */}
       <Typography variant="subtitle1" sx={{ mt: 2 }}>
         残り時間: {secondsLeft} 秒
       </Typography>
