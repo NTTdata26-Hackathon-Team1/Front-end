@@ -1,0 +1,44 @@
+
+
+body, .parentwaiting-bg {
+	background: #181848;
+	width: 100vw;
+	height: 100vh;
+	position: relative;
+	overflow: hidden;
+}
+.parentwaiting-round {
+    position: absolute;
+    top: 1vw;
+    left: 10vw;
+    transform: translateX(-50%);
+    font-size: 2vw;
+    color: #fffbe6;
+    font-weight: bold;
+    text-shadow: 0.3vw 0.3vw 0 #ff69b4;
+    z-index: 10;
+    letter-spacing: 0.2em;
+}
+.parentwaiting-title {
+	position: absolute;
+	top: 8vw;
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 4vw;
+	color: #fff;
+	font-weight: bold;
+	text-shadow: 0 0.3vw 0 #ff69b4, 0 0.6vw 0 #ff69b4;
+	z-index: 10;
+	letter-spacing: 0.1em;
+}
+
+/*イラスト*/
+.parentwaiting-cloud.left {position: absolute;  top: 4vw; left: 2vw; width: 12vw; height: 9vw; }
+.parentwaiting-cloud.right {position: absolute; top: 4vw; right: 10vw; width: 15vw; height: 10vw; transform: scaleX(-1); }
+.parentwaiting-character{position: absolute; bottom: 8vw;right: 40vw;  width: 8vw; height: 13vw; z-index: 2;transform: scaleX(-1);}
+.parentwaiting-sunflower1 {position: absolute;bottom: 8vw;left: 2vw; height: 7vw;width: 4vw;z-index: 1;}
+.parentwaiting-sunflower2 {position: absolute;bottom: 8vw;right: 3vw; height: 7vw;width: 4vw;z-index: 1;}
+.parentwaiting-girl {position: absolute;bottom: 8vw; right: 30vw;width: 7vw;height: 12vw;transform: scaleX(-1);z-index: 1;}
+.parentwaiting-bigtree {position: absolute;bottom: 8vw;right: 5vw; height: 35vw;width: auto;z-index: 1;}
+.parentwaiting-sunset {position: absolute;bottom: 10vw;left: 10vw; height: 30vw;width: auto;z-index: 1;}
+

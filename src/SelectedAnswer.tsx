@@ -32,15 +32,19 @@ const containerStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: '2rem',
-  marginBottom: '30px',
-  color: '#555',
+  fontSize: '3rem',
+  marginTop: '-5vw',
+  marginBottom: '20px',
+  color: '#fff',
+  fontWeight: 'bold',
+  textShadow: '0 0.3vw 0 #ff69b4, 0 0.6vw 0 #ff69b4',
+  letterSpacing: '0.1em',
 };
 
 const answerCardStyle: React.CSSProperties = {
   width: '300px',
   height: '180px',
-  background: '#eee',
+  background: '#1ab641ff',
   border: '2px solid #888',
   borderRadius: '40px',
   display: 'flex',
@@ -57,7 +61,7 @@ const answerCardStyle: React.CSSProperties = {
 const nameListCardStyle: React.CSSProperties = {
   width: '350px',
   minHeight: '180px',
-  background: '#ddd',
+  background: '#1ab641ff',
   border: '2px solid #888',
   borderRadius: '20px',
   display: 'flex',
@@ -82,11 +86,15 @@ const buttonStyle: React.CSSProperties = {
 };
 
 const roundBadgeStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: 8,
-  left: 12,
-  fontWeight: 700,
-  color: '#333',
+  position: 'fixed',
+  top: '1vw',
+  left: '1vw',
+  fontSize: '2vw',
+  color: '#fffbe6',
+  fontWeight: 'bold',
+  textShadow: '0.3vw 0.3vw 0 #ff69b4',
+  zIndex: 100,
+  letterSpacing: '0.2em',
 };
 
 // tab_id 解決ヘルパー（localStorage → sessionStorage → URL ?tab_id=）
@@ -269,7 +277,7 @@ function SelectedAnswer() {
     <div style={containerStyle}>
       {/* 左上：ラウンド表示 */}
       <div style={roundBadgeStyle}>
-        第 {roundLoading ? '…' : (round ?? '—')} ターン
+        ROUND {roundLoading ? '…' : (round ?? '—')} 
       </div>
 
       <h2 style={titleStyle}>ベストな回答に選ばれたのは</h2>
@@ -311,6 +319,87 @@ function SelectedAnswer() {
       >
         {nexting ? '送信中…' : waitingRoute ? '待機中…' : '次へ'}
       </button>
+
+      {/* pixel_character画像とpixel_girl画像を画面下中央に並べて挿入 */}
+      <div style={{
+        position: 'fixed',
+        bottom: '8vw',
+        left: '17vw',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: '2vw',
+        zIndex: 50,
+        alignItems: 'flex-end',
+      }}>
+        <img
+          src={process.env.PUBLIC_URL + '/pixel_character.png'}
+          alt="character"
+          style={{
+            width: '16vw',
+            height: 'auto',
+          }}
+        />
+        <img
+          src={process.env.PUBLIC_URL + '/pixel_girl.png'}
+          alt="girl"
+          style={{
+            width: '13vw',
+            height: 'auto',
+          }}
+        />
+      </div>
+      {/* 花 */}
+      <img
+        src={process.env.PUBLIC_URL + '/pixel_flower.png'}
+        alt="flower"
+        style={{
+          position: 'fixed',
+          bottom: '8vw',
+          right: '2vw',
+          width: '10vw',
+          height: 'auto',
+          zIndex: 50,
+          transform: 'scaleX(-1)',
+        }}
+      />
+
+      {/* 雲画像3つを独立して画面上部に配置 */}
+      <img
+        src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
+        alt="cloud1"
+        style={{
+          position: 'fixed',
+          top: '13vw',
+          left: '1vw',
+          width: '7vw',
+          height: 'auto',
+          zIndex: 30,
+        }}
+      />
+      <img
+        src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
+        alt="cloud2"
+        style={{
+          position: 'fixed',
+          top: '6vw',
+          left: '11vw',
+          width: '9vw',
+          height: 'auto',
+          zIndex: 30,
+        }}
+      />
+      <img
+        src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
+        alt="cloud3"
+        style={{
+          position: 'fixed',
+          top: '2vw',
+          right: '12vw',
+          width: '10vw',
+          height: 'auto',
+          zIndex: 30,
+        }}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
  .topmenu-form-box {
 	background: #fff;
+    color: black;
 	border-radius: 1vw;
 	box-shadow: 0 0 2vw #0008;
 	width: 35vw;
@@ -10,7 +11,7 @@
 	text-align: center;
 	position: relative;
 	z-index: 10;
-	gap: 3vw;
+	gap: 0vw;
 }
 .topmenu-title {
   font-family: 'Pixel', 'Arial', sans-serif;

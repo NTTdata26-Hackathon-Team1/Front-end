@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './ChildWaiting.css';
+import DanmakuInput from './DanmakuInput';
 
 const POLL_MS_ACTIVE = 2000;
 const POLL_MS_HIDDEN = 8000;
@@ -117,14 +118,15 @@ const ChildWaiting: React.FC = () => {
 
     return (
         <div className="childwaiting-bg">
-                {/* イラスト */}
-			    <img src="/pixel_cloud_small.png" alt="" className="childwaiting-cloud left" />
-			    <img src="/pixel_cloud_transparent.png" alt="" className="childwaiting-cloud right" />
-                <img src="/pixel_character.png" alt="" className="childwaiting-character" />
-                <img src="/pixel_sunflower.png" alt="" className="childwaiting-sunflower" />
-                <img src="/pixel_sunset.png" alt="" className="childwaiting-sunset" />
-                <img src="/pixel_tower.png" alt="" className="childwaiting-tower" />
-                <img src="/pixel_tree_bonsai.png" alt="" className="childwaiting-tree-bonsai" />
+            {/* イラスト */}
+            <img src="/pixel_cloud_small.png" alt="" className="childwaiting-cloud left" />
+            <img src="/pixel_cloud_transparent.png" alt="" className="childwaiting-cloud right" />
+            <img src="/pixel_character.png" alt="" className="childwaiting-character" />
+            <img src="/pixel_sunflower.png" alt="" className="childwaiting-sunflower" />
+            <img src="/pixel_sunset.png" alt="" className="childwaiting-sunset" />
+            <img src="/pixel_tower.png" alt="" className="childwaiting-tower" />
+            <img src="/pixel_tree_bonsai.png" alt="" className="childwaiting-tree-bonsai" />
+            
             {/* タイトル（中央大きく）＋ round数 */}
             <div className="childwaiting-title">親がお題を入力中です</div>
             <div className="childwaiting-round">ROUND{roundLoading ? '…' : (round ?? '—')} </div>
@@ -132,6 +134,7 @@ const ChildWaiting: React.FC = () => {
             {errMsg && (
                 <div className="childwaiting-error">{errMsg}</div>
             )}
+            <DanmakuInput fixedBottom />
         </div>
     );
 };

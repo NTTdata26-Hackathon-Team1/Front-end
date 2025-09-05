@@ -1,12 +1,16 @@
-
 .App {text-align: center;}
+
+html, body {
+  height: 100%;
+  overflow: auto;
+}
 
 body, .retro-bg {
     background: #18194a;
     min-height: 100vh;
     width: 100vw;
     position: relative;
-    overflow: hidden;
+    overflow: auto;
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -208,7 +208,7 @@ const TopMenu: React.FC = () => {
 
             <div className="topmenu-form-box">
                 {/* ...既存のフォーム・部屋作成・参加部分... */}
-                <Box display="flex" flexDirection="column" alignItems="center" mt={4}>
+                <Box display="flex" flexDirection="column" alignItems="center" mt={1}>
                     {/* 最上部：ニックネーム */}
                     <Box width="100%" maxWidth={520} mt={1}>
                         <TextField
@@ -221,11 +221,11 @@ const TopMenu: React.FC = () => {
                         </Button>
                     </Box>
                     {/* 部屋作成 */}
-                    <Box width="100%" maxWidth={520} mt={4}>
+                    <Box width="100%" maxWidth={520} mt={1}>
                         <Typography variant="h5" component="h2">
                             部屋を作る
                         </Typography>
-                        <Box mt={2} display="flex" flexDirection="column" gap={2}>
+                        <Box mt={1} display="flex" flexDirection="column" gap={2}>
                             <TextField
                                 label="room name"
                                 variant="outlined"
@@ -245,7 +245,7 @@ const TopMenu: React.FC = () => {
                                 fullWidth
                             />
                             {/* 人数 + 右側に「部屋を作成」ボタン */}
-                            <Box display="flex" gap={2} alignItems="center">
+                            <Box display="flex" gap={1} alignItems="center">
                                 <TextField
                                     label="人数"
                                     variant="outlined"
@@ -261,7 +261,7 @@ const TopMenu: React.FC = () => {
                                     color="primary"
                                     onClick={handleCreateRoom}
                                     disabled={!allValidCreate || submitting}
-                                    sx={{ whiteSpace: 'nowrap', height: 56 }}
+                                    sx={{ whiteSpace: 'nowrap', height: 40 }}
                                 >
                                     部屋を作成
                                 </Button>
@@ -274,7 +274,7 @@ const TopMenu: React.FC = () => {
                         </Typography>
                     )}
                     {/* ===== 部屋に参加する（ボタン一覧） ===== */}
-                    <Box width="100%" maxWidth={520} mt={6}>
+                    <Box width="100%" maxWidth={520} mt={2}>
                         <Typography variant="h5" component="h2">
                             部屋に参加する
                         </Typography>
@@ -283,7 +283,7 @@ const TopMenu: React.FC = () => {
                                 {roomsErr}
                             </Typography>
                         )}
-                        <Box mt={2} display="flex" flexDirection="column" gap={1.5}>
+                        <Box mt={1} display="flex" flexDirection="column" gap={1}>
                             {rooms.length === 0 ? (
                                 <Typography sx={{ opacity: 0.7 }}>（30分以内に作成された部屋がありません）</Typography>
                             ) : (
@@ -293,7 +293,7 @@ const TopMenu: React.FC = () => {
                                         variant="outlined"
                                         onClick={() => handleJoinRoom(r.room_name)}
                                         disabled={!name.trim() || joining === r.room_name}
-                                        sx={{ display: 'flex', justifyContent: 'space-between', textTransform: 'none' }}
+                                        sx={{ display: 'flex', justifyContent: 'space-between', textTransform: 'none', color: '#222' }}
                                     >
                                         <span>
                                             room name: <b>{r.room_name}</b>
