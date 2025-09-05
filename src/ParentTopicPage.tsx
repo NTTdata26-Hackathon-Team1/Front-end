@@ -35,7 +35,13 @@ const MOCK_TOPICS = [
 // sessionStorage から引き継ぎ
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
 
-type GetRoundResp = { ok: boolean; round?: number; error?: string };
+// 変更
+type GetRoundResp = {
+  ok: boolean;
+  round?: number;
+  room_id?: string;
+  error?: string;
+};
 type SubmitTopicResp = { ok: boolean; row?: any; error?: string };
 
 const ParentTopicPage: React.FC = () => {
@@ -64,45 +70,62 @@ const ParentTopicPage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // ★ 20秒経過時のオート補完＆遷移（DB→fallbackモック）
+  // ★ 追加：room_id をどこか（sessionStorageなど）から読む
+  const getRoomId = () => sessionStorage.getItem("room_id") ?? "";
+
+  // ✅ 差し替え後（抽選→保存までEdgeで一発）
   useEffect(() => {
     const timeout = window.setTimeout(async () => {
       // 20秒経過時点の入力を確認
       let chosen = topicRef.current.trim();
+      let source: "db" | "mock" | "manual" = "manual";
 
       if (!chosen) {
-        // DB から取得を試す
-        const fromDb = await getRandomTopicText();
+        const room_id = getRoomId();
 
-        if (fromDb && fromDb.trim()) {
-          chosen = fromDb.trim();
-          setTopic(chosen); // 画面にも反映
+        if (room_id) {
+          // Edge Functionで抽選→保存（冪等）
+          const { data: fin, error: finErr } = await supabase.functions.invoke(
+            "time_management",
+            { body: { action: "finalize-topic-if-needed", room_id } }
+          );
+
+          if (!finErr && fin?.ok && fin.topic?.trim()) {
+            chosen = fin.topic.trim();
+            source = "db"; // Edgeで確定保存済み
+          } else {
+            // フォールバック（モック）
+            chosen =
+              MOCK_TOPICS[Math.floor(Math.random() * MOCK_TOPICS.length)];
+            source = "mock";
+
+            // 任意：念のため既存 submit-topic で保存してもOK
+            const tab_id = getTabId();
+            if (tab_id) {
+              await supabase.functions.invoke<SubmitTopicResp>("main-api", {
+                body: { action: "submit-topic", txt: chosen, tab_id },
+              });
+            }
+          }
         } else {
-          // 失敗/空ならモックにフォールバック
+          // room_id が無いと Edge 側で保存できないのでモックにフォールバック
           chosen = MOCK_TOPICS[Math.floor(Math.random() * MOCK_TOPICS.length)];
-          setTopic(chosen);
+          source = "mock";
         }
+
+        setTopic(chosen); // UIにも反映
       }
 
-      // 次画面へ（親待機）
-      navigate("/parentwaiting", { state: { topic: chosen } });
+      // デバッグ保険（リロード対応）
+      sessionStorage.setItem("last_topic", chosen);
+      sessionStorage.setItem("last_topic_source", source);
+
+      // 親待機へ（どこから来たかも渡すと検証しやすい）
+      navigate("/parentwaiting", { state: { topic: chosen, source } });
     }, 20_000);
 
     return () => clearTimeout(timeout);
   }, [navigate]);
-
-  // ページ起動時：time_management を呼ぶ、バックエンドでタイマー管理（現状デバッグのまま）
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase.functions.invoke(
-        "time_management",
-        {
-          body: { action: "ping" },
-        }
-      );
-      console.log("ping:", { data, error });
-    })();
-  }, []);
 
   // ページ起動時：main-api の get-round を呼んで round を取得して表示
   useEffect(() => {
@@ -129,7 +152,17 @@ const ParentTopicPage: React.FC = () => {
           setErr((data as any)?.error ?? "ラウンド情報の取得に失敗しました");
           return;
         }
-        setRound(data.round);
+
+        // ★ round があれば表示
+        if (typeof data.round === "number") setRound(data.round);
+
+        // ★ ここが重要：room_id を保存（Edgeの finalize-topic-if-needed で使用）
+        if (data.room_id && data.room_id.trim()) {
+          sessionStorage.setItem("room_id", data.room_id.trim());
+          console.log("[ParentTopic] set room_id:", data.room_id);
+        } else {
+          console.warn("[ParentTopic] room_id missing in get-round response");
+        }
       } catch (e: any) {
         setErr(
           e?.message ?? "ラウンド情報の取得に失敗しました（unknown error）"
