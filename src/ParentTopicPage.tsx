@@ -117,8 +117,6 @@ const ParentTopicPage: React.FC = () => {
             {/* 木盆栽 */}
             <img src="/pixel_tree_bonsai.png" alt="" className="parenttopick-tree-bonsai" />
 
-            {/* サブタイトル（右上） */}
-            <div className="parenttopick-subtitle">ASAMADE SORE SEIKAI</div>
 
             {/* タイトル（中央大きく）＋ round数 */}
             <div className="parenttopick-title">

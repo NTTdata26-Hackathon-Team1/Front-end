@@ -21,6 +21,7 @@
   text-align: center;
   margin-top: 0vw;
   margin-bottom: 4vw;
+  z-index: 10;
 }
 .cloud-img {
   position: absolute;

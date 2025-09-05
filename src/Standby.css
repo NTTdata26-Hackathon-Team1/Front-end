@@ -18,6 +18,7 @@
   text-align: center;
   margin-top: 0vw;
   margin-bottom: 3vw;
+  z-index: 10;
 }
 
 .cloud-img {

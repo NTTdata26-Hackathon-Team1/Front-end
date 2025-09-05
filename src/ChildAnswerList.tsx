@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './ChildAnswerList.css';
+import DanmakuInput from './DanmakuInput';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
@@ -179,6 +180,8 @@ function ChildAnswerList() {
           <div className="childanswerlist-answer childanswerlist-answer-gray">（まだ回答はありません）</div>
         )}
       </div>
+      {/* DanmakuInputを最下部に追加 */}
+      <DanmakuInput fixedBottom />
     </div>
   );
 }

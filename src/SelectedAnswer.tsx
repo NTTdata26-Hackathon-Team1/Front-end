@@ -1,6 +1,8 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import DanmakuInput from './DanmakuInput';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
@@ -39,6 +41,7 @@ const titleStyle: React.CSSProperties = {
   fontWeight: 'bold',
   textShadow: '0 0.3vw 0 #ff69b4, 0 0.6vw 0 #ff69b4',
   letterSpacing: '0.1em',
+  zIndex: 10
 };
 
 const answerCardStyle: React.CSSProperties = {
@@ -274,133 +277,137 @@ function SelectedAnswer() {
   }, []);
 
   return (
-    <div style={containerStyle}>
-      {/* 左上：ラウンド表示 */}
-      <div style={roundBadgeStyle}>
-        ROUND {roundLoading ? '…' : (round ?? '—')} 
-      </div>
+    <>
+      <div style={containerStyle}>
+        {/* 左上：ラウンド表示 */}
+        <div style={roundBadgeStyle}>
+          ROUND {roundLoading ? '…' : (round ?? '—')} 
+        </div>
 
-      <h2 style={titleStyle}>ベストな回答に選ばれたのは</h2>
+        <h2 style={titleStyle}>ベストな回答に選ばれたのは</h2>
 
-      <div style={answerCardStyle}>
-        {best ? `${best.user_name} : ${best.input_QA}` : '（まだ決定していません）'}
-      </div>
+        <div style={answerCardStyle}>
+          {best ? `${best.user_name} : ${best.input_QA}` : '（まだ決定していません）'}
+        </div>
 
-      <div style={nameListCardStyle}>
-        <div>他の人の回答</div>
-        <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
-          {others.length > 0 ? (
-            others.map((a, idx) => (
-              <li key={`${a.user_name}-${idx}`}>
-                {`${a.user_name} : ${a.input_QA}`}
-              </li>
-            ))
-          ) : (
-            <li>（他の回答なし）</li>
-          )}
-        </ul>
-      </div>
+        <div style={nameListCardStyle}>
+          <div>他の人の回答</div>
+          <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
+            {others.length > 0 ? (
+              others.map((a, idx) => (
+                <li key={`${a.user_name}-${idx}`}>
+                  {`${a.user_name} : ${a.input_QA}`}
+                </li>
+              ))
+            ) : (
+              <li>（他の回答なし）</li>
+            )}
+          </ul>
+        </div>
 
-      {errorMsg && (
-        <div style={{ color: 'crimson', marginBottom: 16 }}>{errorMsg}</div>
-      )}
+        {errorMsg && (
+          <div style={{ color: 'crimson', marginBottom: 16 }}>{errorMsg}</div>
+        )}
 
-      <button
-        style={buttonStyle}
-        onClick={handleNext}
-        disabled={nexting || waitingRoute}
-        title={
-          nexting
-            ? '送信中…'
-            : waitingRoute
-              ? '他の参加者を待機しています…'
-              : '次へ'
-        }
-      >
-        {nexting ? '送信中…' : waitingRoute ? '待機中…' : '次へ'}
-      </button>
+        <button
+          style={buttonStyle}
+          onClick={handleNext}
+          disabled={nexting || waitingRoute}
+          title={
+            nexting
+              ? '送信中…'
+              : waitingRoute
+                ? '他の参加者を待機しています…'
+                : '次へ'
+          }
+        >
+          {nexting ? '送信中…' : waitingRoute ? '待機中…' : '次へ'}
+        </button>
 
-      {/* pixel_character画像とpixel_girl画像を画面下中央に並べて挿入 */}
-      <div style={{
-        position: 'fixed',
-        bottom: '8vw',
-        left: '17vw',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        gap: '2vw',
-        zIndex: 50,
-        alignItems: 'flex-end',
-      }}>
-        <img
-          src={process.env.PUBLIC_URL + '/pixel_character.png'}
-          alt="character"
-          style={{
-            width: '16vw',
-            height: 'auto',
-          }}
-        />
-        <img
-          src={process.env.PUBLIC_URL + '/pixel_girl.png'}
-          alt="girl"
-          style={{
-            width: '13vw',
-            height: 'auto',
-          }}
-        />
-      </div>
-      {/* 花 */}
-      <img
-        src={process.env.PUBLIC_URL + '/pixel_flower.png'}
-        alt="flower"
-        style={{
+        {/* pixel_character画像とpixel_girl画像を画面下中央に並べて挿入 */}
+        <div style={{
           position: 'fixed',
           bottom: '8vw',
-          right: '2vw',
-          width: '10vw',
-          height: 'auto',
+          left: '17vw',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '2vw',
           zIndex: 50,
-          transform: 'scaleX(-1)',
-        }}
-      />
+          alignItems: 'flex-end',
+        }}>
+          <img
+            src={process.env.PUBLIC_URL + '/pixel_character.png'}
+            alt="character"
+            style={{
+              width: '16vw',
+              height: 'auto',
+            }}
+          />
+          <img
+            src={process.env.PUBLIC_URL + '/pixel_girl.png'}
+            alt="girl"
+            style={{
+              width: '13vw',
+              height: 'auto',
+            }}
+          />
+        </div>
+        {/* 花 */}
+        <img
+          src={process.env.PUBLIC_URL + '/pixel_flower.png'}
+          alt="flower"
+          style={{
+            position: 'fixed',
+            bottom: '8vw',
+            right: '2vw',
+            width: '10vw',
+            height: 'auto',
+            zIndex: 50,
+            transform: 'scaleX(-1)',
+          }}
+        />
 
-      {/* 雲画像3つを独立して画面上部に配置 */}
-      <img
-        src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
-        alt="cloud1"
-        style={{
-          position: 'fixed',
-          top: '13vw',
-          left: '1vw',
-          width: '7vw',
-          height: 'auto',
-          zIndex: 30,
-        }}
-      />
-      <img
-        src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
-        alt="cloud2"
-        style={{
-          position: 'fixed',
-          top: '6vw',
-          left: '11vw',
-          width: '9vw',
-          height: 'auto',
-          zIndex: 30,
-        }}
-      />
-      <img
-        src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
-        alt="cloud3"
-        style={{
-          position: 'fixed',
-          top: '2vw',
-          right: '12vw',
-          width: '10vw',
-          height: 'auto',
-          zIndex: 30,
-        }}
-      />
-    </div>
+        {/* 雲画像3つを独立して画面上部に配置 */}
+        <img
+          src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
+          alt="cloud1"
+          style={{
+            position: 'fixed',
+            top: '13vw',
+            left: '1vw',
+            width: '7vw',
+            height: 'auto',
+            zIndex: 30,
+          }}
+        />
+        <img
+          src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
+          alt="cloud2"
+          style={{
+            position: 'fixed',
+            top: '6vw',
+            left: '11vw',
+            width: '9vw',
+            height: 'auto',
+            zIndex: 30,
+          }}
+        />
+        <img
+          src={process.env.PUBLIC_URL + '/pixel_cloud_small.png'}
+          alt="cloud3"
+          style={{
+            position: 'fixed',
+            top: '2vw',
+            right: '12vw',
+            width: '10vw',
+            height: 'auto',
+            zIndex: 30,
+          }}
+        />
+      </div>
+      {/* DanmakuInputを最下部に追加 */}
+      <DanmakuInput fixedBottom />
+    </>
   );
 }
 
