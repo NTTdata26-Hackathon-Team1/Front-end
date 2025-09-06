@@ -19,7 +19,7 @@ type AiListResp = {
 };
 
 const MAX_TOPIC_CHARS = 16;
-const DEFAULT_TIMEOUT_SEC = 60;
+const DEFAULT_TIMEOUT_SEC = 90;
 
 // フォールバック（必ず「から始まる」「？」形式にしておく）
 const FALLBACK_TOPICS = [
@@ -52,7 +52,7 @@ const ParentTopicPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  // 60秒カウントダウンして自動確定
+  // 90秒カウントダウンして自動確定
   const [secondsLeft, setSecondsLeft] = useState<number>(DEFAULT_TIMEOUT_SEC);
   const timedOutRef = useRef(false);
 
