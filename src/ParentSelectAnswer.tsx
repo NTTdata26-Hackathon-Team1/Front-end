@@ -6,6 +6,7 @@ import Card from './component/card';
 import Title from './component/title';
 import Round from './component/round';
 import Button from './component/button';
+import DanmakuInput from './DanmakuInput';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
@@ -251,6 +252,7 @@ function ParentSelectAnswer() {
           {deciding ? '決定中…' : '決定'}
         </Button>
       </div>
+      <DanmakuInput fixedBottom />
     </div>
   );
 }
