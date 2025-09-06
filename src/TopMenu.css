@@ -1,20 +1,20 @@
- .topmenu-form-box {
-	background: #fff;
-    color: black;
-	border-radius: 1vw;
-	box-shadow: 0 0 2vw #0008;
-	width: 35vw;
-	min-width: 200px;
-	max-width: 80vw;
-	margin: 0 auto 6vw auto;
-	padding: 1.5vw 1vw;
-	text-align: center;
-	position: relative;
-	z-index: 10;
-	gap: 0vw;
+.topmenu-form-box {
+  background: #fff;
+  color: black;
+  border-radius: 1vw;
+  box-shadow: 0 0 2vw #0008;
+  width: 35vw;
+  min-width: 200px;
+  max-width: 80vw;
+  margin: 0 auto 6vw auto;
+  padding: 1.5vw 1vw;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+  gap: 0vw;
 }
 .topmenu-title {
-  font-family: 'Pixel', 'Arial', sans-serif;
+  font-family: "Pixel", "Arial", sans-serif;
   color: #fff;
   font-size: 6vw;
   text-shadow: 0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4;
@@ -23,17 +23,154 @@
   margin-bottom: 4vw;
   z-index: 10;
 }
+
+/* 横並びで全体幅を他のTextFieldと揃える */
+.nickname-form {
+  display: flex;
+  width: 100%;
+  background: #7f9be4; /* カード色 */ /* ← これで520px幅に揃う */
+  gap: 8px;
+}
+
+/* 入力欄を残り幅いっぱいに広げる */
+.nickname-input {
+  flex: 1;
+}
+
+/* ボタンは固定幅 */
+.nickname-btn {
+  height: 56px; /* TextFieldと揃える */
+  min-width: 96px; /* 送信ボタンの幅 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-room-btn {
+  min-width: 120px;
+  height: 56px; /* ← MUIのTextFieldと同じ高さ */
+  display: flex;
+  align-items: center; /* ボタン内テキストを縦中央に */
+  justify-content: center; /* テキストを横中央に */
+  padding: 0 16px;
+}
+
+.topmenu-form-box h2 {
+  font-weight: 700; /* 太字 */
+}
+
+.topmenu-form-box {
+  background: #7f9be4; /* Cardと同じ色 */
+  border-radius: 12px; /* Cardに合わせる */
+  padding: 24px; /* 余白を確保 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 入力欄の背景をFormと同じグレーに */
+.topmenu-form-box .MuiOutlinedInput-root {
+  background: #f5f5f5; /* ← Formのinput背景に近い薄いグレー */
+  border-radius: 6px;
+}
+
+.room-join-btn {
+  display: flex;
+  justify-content: space-between; /* 左右に分散 */
+  padding: 12px 20px; /* 内側の余白を増やす */
+  font-size: 16px; /* 少し大きめに */
+}
+.room-join-btn span {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* 部屋名と人数の間に隙間 */
+}
+
+/* ラベルや文字色は濃い目に戻す */
+.topmenu-form-box .MuiFormLabel-root {
+  color: #18194a;
+}
+.topmenu-form-box .MuiInputBase-input {
+  color: #000;
+}
+
+/* TopMenu 内の送信ボタンだけ */
+.topmenu-form-box .childanswer-btn {
+  writing-mode: horizontal-tb;
+  white-space: nowrap;
+  width: auto;
+  min-width: 64px;
+  align-items: center;
+  justify-content: center;
+}
+
 .cloud-img {
   position: absolute;
   width: 8vw;
   min-width: 60px;
   z-index: 1;
 }
-.cloud-left1 {position: absolute;left: 0vw;top: 2vw;width: 15vw;height: 10vw;}
-.cloud-right2 {position: absolute;right: 10vw;top: 10vw;width: 25vw;height: 10vw;transform: scaleX(-1);}
-.flower-left { position: absolute; bottom: 8vw; left: 0vw; width: 10vw; min-width: 30px; z-index: 2; }
-.flower-right { position: absolute; bottom: 8vw; right: 0vw; width: 10vw; min-width: 30px; z-index: 2;transform: scaleX(-1); }
-.mushroom-left { position: absolute; bottom: 8vw; left: 10vw; width: 10vw; min-width: 25px; z-index: 2; }
-.mushroom-right { position: absolute; bottom: 8vw; right: 10vw; width: 10vw; min-width: 25px; z-index: 2;transform: scaleX(-1); }
-.flag-left { position: absolute; bottom: 8vw; left: 20vw; width: 10vw; min-width: 35px; z-index: 2; }
-.flag-right { position: absolute; bottom: 8vw; right: 20vw; width: 10vw; min-width: 35px; z-index: 2;transform: scaleX(-1); }
+.cloud-left1 {
+  position: absolute;
+  left: 0vw;
+  top: 2vw;
+  width: 15vw;
+  height: 10vw;
+}
+.cloud-right2 {
+  position: absolute;
+  right: 10vw;
+  top: 10vw;
+  width: 25vw;
+  height: 10vw;
+  transform: scaleX(-1);
+}
+.flower-left {
+  position: absolute;
+  bottom: 8vw;
+  left: 0vw;
+  width: 10vw;
+  min-width: 30px;
+  z-index: 2;
+}
+.flower-right {
+  position: absolute;
+  bottom: 8vw;
+  right: 0vw;
+  width: 10vw;
+  min-width: 30px;
+  z-index: 2;
+  transform: scaleX(-1);
+}
+.mushroom-left {
+  position: absolute;
+  bottom: 8vw;
+  left: 10vw;
+  width: 10vw;
+  min-width: 25px;
+  z-index: 2;
+}
+.mushroom-right {
+  position: absolute;
+  bottom: 8vw;
+  right: 10vw;
+  width: 10vw;
+  min-width: 25px;
+  z-index: 2;
+  transform: scaleX(-1);
+}
+.flag-left {
+  position: absolute;
+  bottom: 8vw;
+  left: 20vw;
+  width: 10vw;
+  min-width: 35px;
+  z-index: 2;
+}
+.flag-right {
+  position: absolute;
+  bottom: 8vw;
+  right: 20vw;
+  width: 10vw;
+  min-width: 35px;
+  z-index: 2;
+  transform: scaleX(-1);
+}
