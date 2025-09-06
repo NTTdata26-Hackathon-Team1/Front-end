@@ -199,7 +199,12 @@ const Standby: React.FC = () => {
 			<img src="/pixel_tree.png" className="tree-img tree-right" alt="tree" />
 
 			{/* タイトル・サブタイトル */}
-			<h1 className="standby-title">朝までそれ正解</h1>
+			<h1 className="standby-title"
+			style={{
+                textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
+                fontWeight: 900,
+                color: "#fcfbfbff",
+            }}>朝までそれ正解</h1>
 
 			{/* 中央の緑枠 */}
 			<div className="center-box">

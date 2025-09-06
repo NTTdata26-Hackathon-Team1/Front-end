@@ -220,29 +220,13 @@ const ChildAnswer: React.FC = () => {
   return (
     <div className="childanswer-bg">
       {/* 雲・キャラ・花・火・盆栽などイラスト */}
-      <img
-        src="/pixel_cloud_small.png"
-        alt=""
-        className="childanswer-cloud-small"
-      />
-      <img
-        src="/pixel_cloud_transparent.png"
-        alt=""
-        className="childanswer-cloud-transparent"
-      />
-      <img
-        src="/pixel_character.png"
-        alt=""
-        className="childanswer-character"
-      />
+      <img src="/pixel_cloud_small.png" alt="" className="childanswer-cloud-small" />
+      <img src="/pixel_cloud_transparent.png" alt="" className="childanswer-cloud-transparent" />
+      <img src="/pixel_character.png" alt="" className="childanswer-character" />
       <img src="/pixel_girl.png" alt="" className="childanswer-girl" />
       <img src="/pixel_flower.png" alt="" className="childanswer-flower1" />
       <img src="/pixel_flower.png" alt="" className="childanswer-flower2" />
-      <img
-        src="/pixel_tree_bonsai.png"
-        alt=""
-        className="childanswer-tree-bonsai"
-      />
+      <img src="/pixel_tree_bonsai.png" alt="" className="childanswer-tree-bonsai" />
       <img src="/pixel_moon.png" alt="" className="childanswer-moon" />
       <img src="/pixel_mushroom.png" alt="" className="childanswer-mushroom" />
       {/* パイプ */}
@@ -253,19 +237,27 @@ const ChildAnswer: React.FC = () => {
       </div>
 
       {/* ラウンド数（左上固定） */}
-      <div className="childanswer-round">
-        ROUND {roundLoading ? "…" : round ?? "—"}
+      <div
+        className="childanswer-round"
+        style={{
+          textShadow: '0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff',
+          fontWeight: 900,
+          color: '#fcfbfbff',
+        }}
+      >
+        ROUND {roundLoading ? '…' : round ?? '—'}
       </div>
 
       {/* タイトル（中央大きく）＋お題 */}
-      <div className="childanswer-title">
-        {loadingTopic ? (
-          "お題を取得中…"
-        ) : topic ? (
-          <>お題は 「{topic}」 です</>
-        ) : (
-          "お題は未設定"
-        )}
+      <div
+        className="childanswer-title"
+        style={{
+          textShadow: '0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff',
+          fontWeight: 900,
+          color: '#fcfbfbff',
+        }}
+      >
+        {loadingTopic ? 'お題を取得中…' : topic ? <>お題は 「{topic}」 です</> : 'お題は未設定'}
       </div>
 
       <div

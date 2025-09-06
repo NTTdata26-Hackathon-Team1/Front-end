@@ -216,51 +216,42 @@ const LastAnswer: React.FC = () => {
       </div>
 
       {/* タイトル */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: "1.5rem", position: "relative", zIndex: 3 }}>
-        <span
-          style={{
-            fontSize: "2.5rem",
-            marginRight: "0.5em",
-            position: "relative",
-            animation: "pop-left 1.2s cubic-bezier(.7,-0.2,.6,1.5) infinite alternate",
-            display: "inline-block",
-          }}
-        >
-          🎉
-        </span>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: "1.5rem", position: "relative", zIndex: 3, marginTop: "-20rem" }}>
         <h1
           style={{
-            fontSize: "3rem",
+            fontSize: "4rem",
             letterSpacing: "0.1em",
             margin: 0,
-            textShadow: "0 4px 24px #eee, 0 1px 0 #fff",
+            textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
             fontWeight: 900,
-            color: "#222",
+            color: "#fcfbfbff",
             position: "relative",
             zIndex: 3,
+            animation: "game-finish-bounce 1.2s infinite alternate cubic-bezier(.7,-0.2,.6,1.5)",
+            display: "inline-block",
           }}
         >
           ゲーム終了！
         </h1>
-        <span
-          style={{
-            fontSize: "2.5rem",
-            marginLeft: "0.5em",
-            position: "relative",
-            animation: "pop-right 1.2s cubic-bezier(.7,-0.2,.6,1.5) infinite alternate",
-            display: "inline-block",
-          }}
-        >
-          🎉
-        </span>
       </div>
+      <style>
+        {`
+        @keyframes game-finish-bounce {
+          0% { transform: scale(1) rotate(-2deg);}
+          30% { transform: scale(1.08) rotate(2deg);}
+          60% { transform: scale(1.13) rotate(-2deg);}
+          100% { transform: scale(1) rotate(0deg);}
+        }
+        `}
+      </style>
 
       <h2
         style={{
           fontSize: "2rem",
           marginBottom: "2rem",
           fontWeight: 700,
-          textShadow: "0 2px 8px #ddd",
+          textShadow: "0 2px 8px #f932a9ff",
+          color:"#ebeaebff",
           zIndex: 3,
         }}
       >
@@ -368,7 +359,7 @@ const LastAnswer: React.FC = () => {
         onMouseLeave={() => setIsPressed(false)}
         onClick={handlePlayAgain}
       >
-        もう一遊ぶ
+        もう一度遊ぶ
       </button>
 
       {/* tree_bonsai画像を2つ追加（左下・右下） */}
