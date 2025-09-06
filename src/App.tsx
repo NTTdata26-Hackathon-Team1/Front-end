@@ -13,6 +13,7 @@ import ParentSelectAnser from './ParentSelectAnswer';
 import ChildAnswerList from './ChildAnswerList';
 import DanmakuProvider from './DanmakuProvider';
 import './App.css';
+import TestPage from './test';
 
 function App() {
   const [soilCount, setSoilCount] = useState(Math.ceil(window.innerWidth / 64) + 2);
@@ -41,6 +42,7 @@ function App() {
             <Route path="/parentselectanswer" element={<ParentSelectAnser />} />
             <Route path="/selectedanswer" element={<SelectedAnswer />} />
             <Route path="/lastanswer" element={<LastAnswer />} />
+            <Route path="/test" element={<TestPage />} />
           </Routes>
         </DanmakuProvider>
       </Router>

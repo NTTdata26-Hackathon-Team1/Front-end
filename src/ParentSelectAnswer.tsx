@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './ParentSelectAnswer.css';
+import Card from './component/card';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
@@ -190,17 +191,24 @@ function ParentSelectAnswer() {
       <div className="parentselectanswer-answers">
         {answers.length > 0 ? (
           answers.map((a, idx) => (
-            <div
+            // <div
+            //   key={`${a.user_name}-${idx}`}
+            //   className={`parentselectanswer-answer${selectedIndex === idx ? ' selected' : ''}`}
+            //   onClick={() => setSelectedIndex(idx)}
+            //   title={`${a.user_name} : ${a.input_QA}`}
+            // >
+            //   <div>
+            //     <div className="parentselectanswer-answer-label">{`${a.user_name}`}</div>
+            //     <div className="parentselectanswer-answer-text">{`${a.input_QA}`}</div>
+            //   </div>
+            // </div>
+            <Card
               key={`${a.user_name}-${idx}`}
-              className={`parentselectanswer-answer${selectedIndex === idx ? ' selected' : ''}`}
+              userName={a.user_name}
+              inputQA={a.input_QA}
+              selected={selectedIndex === idx}
               onClick={() => setSelectedIndex(idx)}
-              title={`${a.user_name} : ${a.input_QA}`}
-            >
-              <div>
-                <div className="parentselectanswer-answer-label">{`${a.user_name}`}</div>
-                <div className="parentselectanswer-answer-text">{`${a.input_QA}`}</div>
-              </div>
-            </div>
+            />
           ))
         ) : (
           !loading && <div className="parentselectanswer-answer parentselectanswer-answer-empty">（回答がまだありません）</div>
