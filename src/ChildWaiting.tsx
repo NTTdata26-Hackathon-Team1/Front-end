@@ -3,6 +3,8 @@ import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './ChildWaiting.css';
 import DanmakuInput from './DanmakuInput';
+import Title from "./component/title";
+import Round from "./component/round";
 
 const POLL_MS_ACTIVE = 2000;
 const POLL_MS_HIDDEN = 8000;
@@ -128,48 +130,35 @@ const ChildWaiting: React.FC = () => {
             <img src="/pixel_tree_bonsai.png" alt="" className="childwaiting-tree-bonsai" />
             
             {/* タイトル（中央大きく）＋ round数 */}
+            {/* ラウンド表示（Roundコンポーネントを使用） */}
             <div
-  style={{
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    margin: "5rem 0 2rem 0",
-    fontSize: "4rem",
-    fontWeight: 700,
-    letterSpacing: "0.1em",
-    color: "#fcfbfbff",
-    textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-  }}
->
-  {"親がお題を入力中です".split("").map((char, i) => (
-    <span
-      key={i}
-      style={{
-        display: "inline-block",
-        animation: `bounceChar 0.8s ${i * 0.08}s infinite`,
-      }}
-    >
-      {char}
-    </span>
-  ))}
-  <style>
-    {`
-      @keyframes bounceChar {
-        0% { transform: translateY(0);}
-        30% { transform: translateY(-18px);}
-        60% { transform: translateY(0);}
-        100% { transform: translateY(0);}
-      }
-    `}
-  </style>
-</div>
-            <div className="childwaiting-round"
-            style={{
-                textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-                fontWeight: 900,
-                color: "#fcfbfbff",
-            }}
-            >ROUND{roundLoading ? '…' : (round ?? '—')} </div>
+                style={{
+                    marginTop: "2rem",
+                    marginBottom: "2rem",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <Round round={round} loading={roundLoading} />
+            </div>
+
+            <div className="childwaiting-titlebox"
+                style={{
+                    fontSize: "4rem",
+                    letterSpacing: "0.1em",
+                    fontWeight: 400,
+                    color: "#fcfbfbff",
+                    textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
+                    textAlign: "center",
+                    margin: "5rem 0 2rem 0",
+                    display: "inline-block",
+                }}
+            >
+                <Title
+                    text="親がお題を入力中です"
+                />
+            </div>
 
             {errMsg && (
                 <div className="childwaiting-error">{errMsg}</div>

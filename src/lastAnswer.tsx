@@ -1,5 +1,6 @@
 import React from "react";
 import { supabase } from "./supabaseClient"; // ← 追加
+import DanmakuInput from './DanmakuInput';
 
 // ---- API型 ----
 type ApiResultItem = { rank: number; user_name: string; pt: number };
@@ -219,14 +220,15 @@ const LastAnswer: React.FC = () => {
       <div style={{ display: "flex", alignItems: "center", marginBottom: "1.5rem", position: "relative", zIndex: 3, marginTop: "-20rem" }}>
         <h1
           style={{
-            fontSize: "4rem",
-            letterSpacing: "0.1em",
-            margin: 0,
-            textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-            fontWeight: 900,
-            color: "#fcfbfbff",
-            position: "relative",
-            zIndex: 3,
+             fontFamily: "'Pixel', 'Arial', sans-serif",
+      color: "#fff",
+      fontSize: "6vw",
+      textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
+      textAlign: "center",
+      marginTop: "17vw",
+      marginBottom: "1vw",
+      zIndex: 10,
+      fontWeight: 900,
             animation: "game-finish-bounce 1.2s infinite alternate cubic-bezier(.7,-0.2,.6,1.5)",
             display: "inline-block",
           }}
@@ -248,9 +250,10 @@ const LastAnswer: React.FC = () => {
       <h2
         style={{
           fontSize: "2rem",
-          marginBottom: "2rem",
+          marginTop: "0vw",
+          marginBottom: "1rem",
           fontWeight: 700,
-          textShadow: "0 2px 8px #f932a9ff",
+          textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
           color:"#ebeaebff",
           zIndex: 3,
         }}
@@ -265,7 +268,7 @@ const LastAnswer: React.FC = () => {
 
       <div
         style={{
-          background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
+          background: "#0f054cff",
           borderRadius: "20px",
           padding: "2rem 3rem",
           boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
@@ -284,7 +287,7 @@ const LastAnswer: React.FC = () => {
                 marginBottom: "1.2rem",
                 fontSize: rank === 1 ? "1.7rem" : "1.2rem",
                 color: "#fff",
-                background: "rgba(255,255,255,0.08)",
+                background: "rgba(227, 46, 46, 0.08)",
                 borderRadius: "12px",
                 padding: "0.7em 1.2em",
                 opacity: 0.6,
@@ -308,7 +311,7 @@ const LastAnswer: React.FC = () => {
                 fontSize: idx === 0 ? "1.7rem" : "1.2rem",
                 fontWeight: idx === 0 ? 700 : 500,
                 color:
-                  idx === 0 ? "#FFD700" : idx === 1 ? "#C0C0C0" : idx === 2 ? "#CD7F32" : "#fff",
+                  idx === 0 ? "#030303ff" : idx === 1 ? "#030303ff" : idx === 2 ? "#030303ff" : "#fff",
                 letterSpacing: "0.05em",
                 textShadow: idx === 0 ? "0 2px 8px #FFD700" : "0 1px 2px #000",
                 background:
@@ -322,7 +325,7 @@ const LastAnswer: React.FC = () => {
                 borderRadius: "12px",
                 padding: "0.7em 1.2em",
                 marginTop: idx === 0 ? 0 : "0.5em",
-                boxShadow: idx === 0 ? "0 2px 12px #ffd70044" : "0 1px 4px #0002",
+                boxShadow: idx === 0 ? "0 2px 12px #ffd70044" : "0 1px 4px rgba(228, 25, 25, 0.13)",
               }}
             >
               <span style={{ width: 40, display: "inline-block", fontSize: "2rem" }}>
@@ -447,8 +450,12 @@ const LastAnswer: React.FC = () => {
         }
         `}
       </style>
-    </div>
+    
+    {/* DanmakuInputを最下部に追加 */}
+    <DanmakuInput fixedBottom />
+  </div>
   );
 };
 
 export default LastAnswer;
+
