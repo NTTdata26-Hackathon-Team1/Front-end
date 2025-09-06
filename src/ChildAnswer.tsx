@@ -7,196 +7,272 @@ import DanmakuInput from './DanmakuInput';
 // sessionStorage から取得（TopMenu で保存済み想定）
 const getTabId = () => sessionStorage.getItem('tab_id') ?? '';
 
+type GetRoundResp = { ok: boolean; round?: number; error?: string };
+type GetTopicResp = { ok: boolean; topic?: string | null; error?: string };
+type SubmitAnswerResp = { ok: boolean; row?: any; updated?: boolean; error?: string };
+type AiListResp = { ok: boolean; list?: string[]; submitted?: string; error?: string };
+
+const MAX_ANSWER_CHARS = 12;
+
 const ChildAnswer: React.FC = () => {
-    const [topic, setTopic] = useState<string | null>(null); // 取得したお題
-    const [answer, setAnswer] = useState('');
-    const [sending, setSending] = useState(false);
-    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [topic, setTopic] = useState<string | null>(null); // 取得したお題
+  const [answer, setAnswer] = useState('');
+  const [sending, setSending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    // お題のロード状態
-    const [loadingTopic, setLoadingTopic] = useState(true);
+  // お題のロード状態
+  const [loadingTopic, setLoadingTopic] = useState(true);
 
-    // ラウンド表示用
-    const [round, setRound] = useState<number | null>(null);
-    const [roundLoading, setRoundLoading] = useState<boolean>(false);
+  // ラウンド表示用
+  const [round, setRound] = useState<number | null>(null);
+  const [roundLoading, setRoundLoading] = useState<boolean>(false);
 
-    const navigate = useNavigate();
+  // AI候補
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiList, setAiList] = useState<string[]>([]);
+  const [aiErr, setAiErr] = useState<string | null>(null);
 
-    // 起動時にお題＆ラウンドを取得（main-api）
-    useEffect(() => {
-        let cancelled = false;
-        const tab_id = getTabId();
+  const navigate = useNavigate();
 
-        if (!tab_id) {
-            setErrorMsg('tab_id が見つかりません（前画面での保存を確認してください）');
-            setLoadingTopic(false);
-            setRoundLoading(false);
-            return () => { cancelled = true; };
+  // 起動時にお題＆ラウンドを取得（main-api）
+  useEffect(() => {
+    let cancelled = false;
+    const tab_id = getTabId();
+
+    if (!tab_id) {
+      setErrorMsg('tab_id が見つかりません（前画面での保存を確認してください）');
+      setLoadingTopic(false);
+      setRoundLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    // ラウンド
+    (async () => {
+      setRoundLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke<GetRoundResp>('main-api', {
+          body: { action: 'get-round', tab_id }, // ← params ではなくトップレベルで送る
+        });
+        if (cancelled) return;
+
+        if (error) {
+          setErrorMsg(error.message ?? 'ラウンド情報の取得に失敗しました');
+        } else if (!data?.ok || typeof data.round !== 'number') {
+          setErrorMsg(data?.error ?? 'ラウンド情報の取得に失敗しました');
+        } else {
+          setRound(data.round);
         }
+      } catch (e: any) {
+        if (!cancelled) setErrorMsg(e?.message ?? 'ラウンド情報の取得に失敗しました（unknown error）');
+      } finally {
+        if (!cancelled) setRoundLoading(false);
+      }
+    })();
 
-        // ラウンド
-        (async () => {
-            setRoundLoading(true);
-            try {
-                const { data, error } = await supabase.functions.invoke<{
-                    ok: boolean;
-                    round?: number;
-                    error?: string;
-                }>('main-api', {
-                    body: { action: 'get-round', params: { tab_id } },
-                });
-                if (cancelled) return;
+    // お題
+    (async () => {
+      setLoadingTopic(true);
+      try {
+        const { data, error } = await supabase.functions.invoke<GetTopicResp>('main-api', {
+          body: { action: 'get-current-topic', tab_id }, // ← こちらもトップレベル
+        });
+        if (cancelled) return;
 
-                if (error) {
-                    setErrorMsg(error.message ?? 'ラウンド情報の取得に失敗しました');
-                } else if (!data?.ok || typeof data.round !== 'number') {
-                    setErrorMsg(data?.error ?? 'ラウンド情報の取得に失敗しました');
-                } else {
-                    setRound(data.round);
-                }
-            } catch (e: any) {
-                if (!cancelled) setErrorMsg(e?.message ?? 'ラウンド情報の取得に失敗しました（unknown error）');
-            } finally {
-                if (!cancelled) setRoundLoading(false);
-            }
-        })();
-
-        // お題
-        (async () => {
-            setLoadingTopic(true);
-            try {
-                const { data, error } = await supabase.functions.invoke<{
-                    ok: boolean;
-                    topic?: string | null;
-                    error?: string;
-                }>('main-api', {
-                    body: { action: 'get-current-topic', params: { tab_id } },
-                });
-                if (cancelled) return;
-
-                if (error) {
-                    setErrorMsg(error.message ?? 'お題の取得に失敗しました');
-                } else if (!data?.ok) {
-                    setErrorMsg(data?.error ?? 'お題の取得に失敗しました');
-                } else {
-                    setTopic(typeof data.topic === 'string' && data.topic.length > 0 ? data.topic : null);
-                }
-            } catch (e: any) {
-                if (!cancelled) setErrorMsg(e?.message ?? 'お題の取得に失敗しました（unknown error）');
-            } finally {
-                if (!cancelled) setLoadingTopic(false);
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!answer.trim() || sending) return;
-
-        const tab_id = getTabId();
-        if (!tab_id) {
-            setErrorMsg('tab_id が見つかりません（前画面での保存を確認してください）');
-            return;
+        if (error) {
+          setErrorMsg(error.message ?? 'お題の取得に失敗しました');
+        } else if (!data?.ok) {
+          setErrorMsg(data?.error ?? 'お題の取得に失敗しました');
+        } else {
+          setTopic(typeof data.topic === 'string' && data.topic.length > 0 ? data.topic : null);
         }
+      } catch (e: any) {
+        if (!cancelled) setErrorMsg(e?.message ?? 'お題の取得に失敗しました（unknown error）');
+      } finally {
+        if (!cancelled) setLoadingTopic(false);
+      }
+    })();
 
-        setSending(true);
-        setErrorMsg(null);
-
-        try {
-            // main-api: submit-answer（tab_id と txt のみ）
-            const { data, error } = await supabase.functions.invoke<{
-                ok: boolean;
-                row?: any;
-                updated?: boolean;
-                error?: string;
-            }>('main-api', {
-                body: {
-                    action: 'submit-answer',
-                    params: {
-                        tab_id,
-                        txt: answer.trim(),
-                    },
-                },
-            });
-
-            if (error) {
-                setErrorMsg(error.message ?? '送信に失敗しました');
-            } else if (!data?.ok) {
-                setErrorMsg(data?.error ?? '送信に失敗しました');
-            } else {
-                // ✅ 送信成功時に一覧ページへ
-                navigate('/childanswerlist');
-            }
-        } catch (err: any) {
-            setErrorMsg(err?.message ?? '送信エラー');
-        } finally {
-            setSending(false);
-        }
+    return () => {
+      cancelled = true;
     };
+  }, []);
 
-    return (
-        <div className="childanswer-bg">
-            {/* 雲・キャラ・花・火・盆栽などイラスト */}
-            <img src="/pixel_cloud_small.png" alt="" className="childanswer-cloud-small" />
-            <img src="/pixel_cloud_transparent.png" alt="" className="childanswer-cloud-transparent" />
-            <img src="/pixel_character.png" alt="" className="childanswer-character" />
-            <img src="/pixel_girl.png" alt="" className="childanswer-girl" />
-            <img src="/pixel_flower.png" alt="" className="childanswer-flower1" />
-            <img src="/pixel_flower.png" alt="" className="childanswer-flower2" />
-            <img src="/pixel_tree_bonsai.png" alt="" className="childanswer-tree-bonsai" />
-            <img src="/pixel_moon.png" alt="" className="childanswer-moon" />
-            <img src="/pixel_mushroom.png" alt="" className="childanswer-mushroom" />
-            {/* パイプ */}
-            <div className="childanswer-pipe-row">
-                <img src="/pixel_pipe.png" alt="" className="childanswer-pipe1" />
-                <img src="/pixel_pipe.png" alt="" className="childanswer-pipe2" />
-                <img src="/pixel_pipe.png" alt="" className="childanswer-pipe3" />
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!answer.trim() || sending) return;
 
-            </div>
+    const tab_id = getTabId();
+    if (!tab_id) {
+      setErrorMsg('tab_id が見つかりません（前画面での保存を確認してください）');
+      return;
+    }
 
-            {/* ラウンド数（左上固定） */}
-            <div className="childanswer-round">
-                ROUND {roundLoading ? '…' : (round ?? '—')}
-            </div>
+    setSending(true);
+    setErrorMsg(null);
 
-            {/* タイトル（中央大きく）＋お題 */}
-            <div className="childanswer-title">
-                {loadingTopic
-                    ? 'お題を取得中…'
-                    : topic
-                        ? <>お題は 「{topic}」 です</>
-                        : 'お題は未設定'}
-            </div>
+    try {
+      // main-api: submit-answer（tab_id と txt のみ）
+      const { data, error } = await supabase.functions.invoke<SubmitAnswerResp>('main-api', {
+        body: {
+          action: 'submit-answer',
+          tab_id,
+          txt: answer.trim(),
+        },
+      });
 
-            {/* 入力フォーム */}
-            <form className="childanswer-form" onSubmit={handleSubmit}>
-                <input
-                    className="childanswer-input"
-                    type="text"
-                    placeholder="解答を入力してください"
-                    value={answer}
-                    onChange={e => setAnswer(e.target.value)}
-                />
-                <button
-                    className="childanswer-btn"
-                    type="submit"
-                    disabled={!answer.trim() || sending}
-                >
-                    {sending ? '送信中…' : '送信'}
-                </button>
-            </form>
+      if (error) {
+        setErrorMsg(error.message ?? '送信に失敗しました');
+      } else if (!data?.ok) {
+        setErrorMsg(data?.error ?? '送信に失敗しました');
+      } else {
+        // ✅ 送信成功時に一覧ページへ
+        navigate('/childanswerlist');
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? '送信エラー');
+    } finally {
+      setSending(false);
+    }
+  };
 
-            {errorMsg && (
-                <div className="childanswer-error">{errorMsg}</div>
-            )}
-            <DanmakuInput fixedBottom />
-        </div>
-    );
+  // === AI候補: 取得 ===
+  const fetchAiAnswers = async () => {
+    const tab_id = getTabId();
+    if (!tab_id) {
+      setAiErr('tab_id が見つかりません（前画面での保存を確認してください）');
+      return;
+    }
+    setAiLoading(true);
+    setAiErr(null);
+    setAiList([]);
+    try {
+      const { data, error } = await supabase.functions.invoke<AiListResp>('main-api', {
+        body: {
+          action: 'assist-answer-gemini-list',
+          tab_id,
+          count: 5,
+          maxChars: MAX_ANSWER_CHARS,
+        },
+      });
+      if (error) throw new Error(error.message ?? 'AI候補の取得に失敗');
+      if (!data?.ok) throw new Error(data?.error ?? 'AI候補の取得に失敗');
+
+      setAiList(data.list ?? []);
+    } catch (e: any) {
+      setAiErr(e?.message ?? 'AI候補の取得に失敗');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // === AI候補: 入力欄に反映 ===
+  const pickToInput = (text: string) => setAnswer(text);
+
+  // === AI候補: 即送信 ===
+  const submitAiAnswer = async (index: number) => {
+    const tab_id = getTabId();
+    if (!tab_id) {
+      setErrorMsg('tab_id が見つかりません（前画面での保存を確認してください）');
+      return;
+    }
+    setSending(true);
+    setErrorMsg(null);
+    try {
+      const { data, error } = await supabase.functions.invoke<AiListResp>('main-api', {
+        body: {
+          action: 'assist-answer-gemini-list',
+          tab_id,
+          count: 5,
+          maxChars: MAX_ANSWER_CHARS,
+          submitIndex: index,
+        },
+      });
+      if (error) throw new Error(error.message ?? '送信に失敗');
+      if (!data?.ok) throw new Error(data?.error ?? '送信に失敗');
+
+      // 成功時は一覧ページへ
+      navigate('/childanswerlist');
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? '送信に失敗しました');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="childanswer-bg">
+      {/* 雲・キャラ・花・火・盆栽などイラスト */}
+      <img src="/pixel_cloud_small.png" alt="" className="childanswer-cloud-small" />
+      <img src="/pixel_cloud_transparent.png" alt="" className="childanswer-cloud-transparent" />
+      <img src="/pixel_character.png" alt="" className="childanswer-character" />
+      <img src="/pixel_girl.png" alt="" className="childanswer-girl" />
+      <img src="/pixel_flower.png" alt="" className="childanswer-flower1" />
+      <img src="/pixel_flower.png" alt="" className="childanswer-flower2" />
+      <img src="/pixel_tree_bonsai.png" alt="" className="childanswer-tree-bonsai" />
+      <img src="/pixel_moon.png" alt="" className="childanswer-moon" />
+      <img src="/pixel_mushroom.png" alt="" className="childanswer-mushroom" />
+      {/* パイプ */}
+      <div className="childanswer-pipe-row">
+        <img src="/pixel_pipe.png" alt="" className="childanswer-pipe1" />
+        <img src="/pixel_pipe.png" alt="" className="childanswer-pipe2" />
+        <img src="/pixel_pipe.png" alt="" className="childanswer-pipe3" />
+      </div>
+
+      {/* ラウンド数（左上固定） */}
+      <div className="childanswer-round">
+        ROUND {roundLoading ? '…' : (round ?? '—')}
+      </div>
+
+      {/* タイトル（中央大きく）＋お題 */}
+      <div className="childanswer-title">
+        {loadingTopic
+          ? 'お題を取得中…'
+          : topic
+            ? <>お題は 「{topic}」 です</>
+            : 'お題は未設定'}
+      </div>
+
+      {/* 入力フォーム */}
+      <form className="childanswer-form" onSubmit={handleSubmit}>
+        <input
+          className="childanswer-input"
+          type="text"
+          placeholder="解答を入力してください"
+          value={answer}
+          onChange={e => setAnswer(e.target.value.slice(0, MAX_ANSWER_CHARS))}
+        />
+        <button
+          className="childanswer-btn"
+          type="submit"
+          disabled={!answer.trim() || sending}
+        >
+          {sending ? '送信中…' : '送信'}
+        </button>
+      </form>
+
+      {/* AI候補UI */}
+      <div style={{ marginTop: 12, textAlign: 'center' }}>
+        <button className="childanswer-btn" onClick={fetchAiAnswers} disabled={aiLoading}>
+          {aiLoading ? '候補取得中…' : 'AI候補を取得'}
+        </button>
+      </div>
+
+      {aiErr && <div className="childanswer-error">{aiErr}</div>}
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 8 }}>
+        {aiList.map((a, i) => (
+          <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button className="childanswer-chip" onClick={() => pickToInput(a)}>{a}</button>
+          </div>
+        ))}
+      </div>
+
+      {errorMsg && (
+        <div className="childanswer-error">{errorMsg}</div>
+      )}
+      <DanmakuInput fixedBottom />
+    </div>
+  );
 };
 
 export default ChildAnswer;
-
