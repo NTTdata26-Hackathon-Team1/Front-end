@@ -4,7 +4,7 @@
   min-height: 100vh;
   position: relative;
   background: #18194a;
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -20,7 +20,7 @@
     color: #fffbe6;
     font-weight: bold;
     text-shadow: 0.3vw 0.3vw 0 #ff69b4;
-    z-index: 10;
+    z-index: 120;
     letter-spacing: 0.2em;
 }
 
@@ -33,39 +33,47 @@
   color: #fff;
   font-weight: bold;
   text-shadow: 0 0.3vw 0 #ff69b4, 0 0.6vw 0 #ff69b4;
-  z-index: 10;
+  z-index: 120;
   letter-spacing: 0.1em;
 }
 
 .childanswerlist-answers {
-  position: absolute;
-  top: 16vw;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  margin-top: 18vw;
+  width: 100%;
+  max-width: 1100px;
+  padding: 0 2vw;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2vw 2vw;
-  z-index: 20;
+  z-index: 120;
+  box-sizing: border-box;
+  justify-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 24vw);
 }
 .childanswerlist-answer {
-  width: 22vw;
-  min-width: 180px;
-  height: 12vw;
-  min-height: 80px;
+  min-width: 0;
+  width: 90%;
+  max-width: 180px;
+  height: auto;
   background: #eee;
   border: 2px solid #888;
   border-radius: 2vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2vw;
-  padding: 0 2vw;
+  font-size: 0.8vw;
+  padding: 0.5vw 0.7vw;
   text-align: center;
   line-height: 1.5;
   white-space: pre-wrap;
   box-shadow: 0 0.5vw #333;
   color: #000;
+  box-sizing: border-box;
+  z-index: 130;
 }
 .childanswerlist-answer-user {
   font-weight: bold;
@@ -84,7 +92,7 @@
   top: 30vw;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 40;
+  z-index: 140;
 }
 
 /* イラスト配置 */
@@ -93,3 +101,29 @@
 .childanswerlist-sunflower {position: absolute; left: 25vw; bottom: 8vw; width: 3vw; height: auto; z-index: 2;}
 .childanswerlist-tower {position: absolute; right: -5vw; bottom: 8vw; width: 20vw; height: auto; z-index: 2;}
 .childanswerlist-tree {position: absolute; left: 2vw; bottom: 8vw; width: 20vw; height: auto; z-index: 2;}
+
+@media (max-width: 1200px) {
+  .childanswerlist-answers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0 1vw;
+  }
+  .childanswerlist-answer {
+    max-width: 240px;
+    font-size: 1vw;
+    padding: 0.7vw 0.7vw;
+  }
+}
+@media (max-width: 700px) {
+  .childanswerlist-answers {
+    grid-template-columns: 1fr;
+    width: 100%;
+    padding: 0 0.5vw;
+    gap: 3vw 1vw;
+  }
+  .childanswerlist-answer {
+    max-width: 92vw;
+    font-size: 2vw;
+    padding: 1vw 0.7vw;
+    margin-bottom: 2vw;
+  }
+}

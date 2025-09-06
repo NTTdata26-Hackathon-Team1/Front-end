@@ -3,6 +3,9 @@ import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './ChildAnswerList.css';
 import DanmakuInput from './DanmakuInput';
+import Title from './component/title';
+import Round from './component/round';
+import Card from './component/card';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
@@ -35,6 +38,9 @@ function ChildAnswerList() {
   // 左上：ラウンド表示
   const [round, setRound] = useState<number | null>(null);
   const [roundLoading, setRoundLoading] = useState(false);
+
+  const [topic, setTopic] = useState<string | null>(null);
+  const [loadingTopic, setLoadingTopic] = useState<boolean>(false);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -123,13 +129,38 @@ function ChildAnswerList() {
     }
   };
 
+  // お題取得
+  const fetchTopic = async () => {
+    const tab_id = tabIdRef.current;
+    if (!tab_id) return;
+    setLoadingTopic(true);
+    try {
+      const { data, error } = await supabase.functions.invoke<{ ok: boolean; topic?: string | null; error?: string }>(
+        'main-api',
+        { body: { action: 'get-current-topic', tab_id } }
+      );
+      if (error) {
+        setTopic(null);
+      } else if (!data?.ok) {
+        setTopic(null);
+      } else {
+        setTopic(typeof data.topic === 'string' && data.topic.length > 0 ? data.topic : null);
+      }
+    } catch {
+      setTopic(null);
+    } finally {
+      setLoadingTopic(false);
+    }
+  };
+
   useEffect(() => {
     cancelledRef.current = false;
     tabIdRef.current = resolveTabId(); // 初回マウント時に tab_id を確定
 
     // 左上のラウンド表示を先に取得
     fetchRound();
-
+    // お題取得
+    fetchTopic();
     // 回答一覧のポーリング開始
     pollOnce();
 
@@ -146,54 +177,44 @@ function ChildAnswerList() {
   return (
     <div className="childanswerlist-bg">
       {/* 左上：ラウンド表示（pixel-artラベル） */}
-
-      <div className="childanswerlist-round"
-      style={{
-                    textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-                    fontWeight: 900,
-                    color: "#fcfbfbff",
-                }}
-            >
-        ROUND {roundLoading ? '…' : (round ?? '—')} 
-
+      <Round round={round} loading={roundLoading} />
+      {/* タイトル（お題 & 回答一覧） */}
+      <div style={{ position: 'absolute', top: '5vw', left: '50%', transform: 'translateX(-50%)', zIndex: 120, textAlign: 'center' }}>
+        <div style={{ fontSize: '4vw', fontWeight: 700, color: '#fcfbfbff', textShadow: '0 2px 12px #f52ba7ff, 0 1px 0 #f645bbff', marginBottom: '1vw' }}>
+          {loadingTopic ? 'お題を取得中…' : topic ? `「${topic}」` : 'お題未設定'}
+        </div>
+        <div style={{ fontSize: '3vw', fontWeight: 700, color: '#fcfbfbff', textShadow: '0 2px 8px #f52ba7ff, 0 1px 0 #f645bbff' }}>
+          回答一覧
+        </div>
       </div>
-
-      {/* タイトル */}
-      <h2 className="childanswerlist-title"
-      style={{
-                    textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-                    fontWeight: 900,
-                    color: "#fcfbfbff",
-                }}
-            >回答一覧</h2>
-
-      {errorMsg && (
-        <div className="childanswerlist-error">{errorMsg}</div>
-      )}
-
+      {/* タイトルとカードの間隔をさらに狭く（top: 9vw, marginTop: 1vw） */}
+      <div style={{ position: 'absolute', top: '4vw', left: '50%', transform: 'translateX(-50%)', width: '100%', zIndex: 120 }}>
+        {errorMsg && (
+          <div className="childanswerlist-error">{errorMsg}</div>
+        )}
+        {/* 回答カード一覧 */}
+        <div className="childanswerlist-answers">
+          {answers.length > 0 ? (
+            answers.map((a, idx) => (
+              <Card
+                key={`${a.user_name}-${idx}`}
+                userName={a.user_name}
+                inputQA={a.input_QA}
+                selected={false}
+                onClick={() => {}}
+              />
+            ))
+          ) : (
+            <div className="childanswerlist-answer">（まだ回答はありません）</div>
+          )}
+        </div>
+      </div>
       {/* イラスト配置例: 雲・旗・きのこ・キャラなど */}
       <img src="/pixel_cloud_small.png" alt="" className="childanswerlist-cloud-small" />
       <img src="/pixel_cloud_transparent.png" alt="" className="childanswerlist-cloud-transparent" />
       <img src="/pixel_tower.png" alt="" className="childanswerlist-tower" />
       <img src="/pixel_tree.png" alt="" className="childanswerlist-tree" />
       <img src="/pixel_sunflower.png" alt="" className="childanswerlist-sunflower" />
-      {/* 回答カード一覧 */}
-      <div className="childanswerlist-answers">
-        {answers.length > 0 ? (
-          answers.map((a, idx) => (
-            <div
-              key={`${a.user_name}-${idx}`}
-              className="childanswerlist-answer"
-            >
-              <span className="childanswerlist-answer-user">{a.user_name}</span>
-              <span className="childanswerlist-answer-sep"> : </span>
-              <span className="childanswerlist-answer-text">{a.input_QA}</span>
-            </div>
-          ))
-        ) : (
-          <div className="childanswerlist-answer">（まだ回答はありません）</div>
-        )}
-      </div>
       {/* DanmakuInputを最下部に追加 */}
       <DanmakuInput fixedBottom />
     </div>
