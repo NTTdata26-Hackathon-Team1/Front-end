@@ -11,10 +11,15 @@ type GetRoundResp = { ok: boolean; round?: number; error?: string };
 type SubmitTopicResp = { ok: boolean; row?: any; error?: string };
 
 // AI候補 API の戻り型
-type AiListResp = { ok: boolean; list?: string[]; submitted?: string; error?: string };
+type AiListResp = {
+  ok: boolean;
+  list?: string[];
+  submitted?: string;
+  error?: string;
+};
 
 const MAX_TOPIC_CHARS = 16;
-const DEFAULT_TIMEOUT_SEC = 20;
+const DEFAULT_TIMEOUT_SEC = 60;
 
 // フォールバック（必ず「から始まる」「？」形式にしておく）
 const FALLBACK_TOPICS = [
@@ -47,7 +52,7 @@ const ParentTopicPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  // 20秒カウントダウンして自動確定
+  // 60秒カウントダウンして自動確定
   const [secondsLeft, setSecondsLeft] = useState<number>(DEFAULT_TIMEOUT_SEC);
   const timedOutRef = useRef(false);
 
@@ -63,7 +68,9 @@ const ParentTopicPage: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        await supabase.functions.invoke("time_management", { body: { action: "ping" } });
+        await supabase.functions.invoke("time_management", {
+          body: { action: "ping" },
+        });
       } catch {
         // ログだけ
       }
@@ -81,9 +88,12 @@ const ParentTopicPage: React.FC = () => {
       setRoundLoading(true);
       setErr(null);
       try {
-        const { data, error } = await supabase.functions.invoke<GetRoundResp>("main-api", {
-          body: { action: "get-round", tab_id },
-        });
+        const { data, error } = await supabase.functions.invoke<GetRoundResp>(
+          "main-api",
+          {
+            body: { action: "get-round", tab_id },
+          }
+        );
         if (error) {
           setErr(error.message ?? "ラウンド情報の取得に失敗しました");
           return;
@@ -94,7 +104,9 @@ const ParentTopicPage: React.FC = () => {
         }
         setRound(data.round);
       } catch (e: any) {
-        setErr(e?.message ?? "ラウンド情報の取得に失敗しました（unknown error）");
+        setErr(
+          e?.message ?? "ラウンド情報の取得に失敗しました（unknown error）"
+        );
       } finally {
         setRoundLoading(false);
       }
@@ -104,10 +116,13 @@ const ParentTopicPage: React.FC = () => {
 
   // ====== AI候補の取得（手動 + サイレント事前取得） ======
   // 候補配列を返すので、タイムアウト時にも即利用できる
-  const fetchAiTopicsInternal = async (opts?: { silent?: boolean }): Promise<string[]> => {
+  const fetchAiTopicsInternal = async (opts?: {
+    silent?: boolean;
+  }): Promise<string[]> => {
     const tab_id = getTabId();
     if (!tab_id) {
-      if (!opts?.silent) setAiErr("tab_id が見つかりません（前画面での保存を確認してください）");
+      if (!opts?.silent)
+        setAiErr("tab_id が見つかりません（前画面での保存を確認してください）");
       return [];
     }
     setAiLoading(true);
@@ -116,20 +131,26 @@ const ParentTopicPage: React.FC = () => {
       setAiList([]);
     }
     try {
-      const { data, error } = await supabase.functions.invoke<AiListResp>("main-api", {
-        body: {
-          action: "assist-topic-gemini-list",
-          tab_id,
-          count: 5,
-          maxChars: MAX_TOPIC_CHARS,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke<AiListResp>(
+        "main-api",
+        {
+          body: {
+            action: "assist-topic-gemini-list",
+            tab_id,
+            count: 5,
+            maxChars: MAX_TOPIC_CHARS,
+          },
+        }
+      );
       if (error) throw new Error(error.message ?? "AI候補の取得に失敗しました");
-      if (!data?.ok) throw new Error(data?.error ?? "AI候補の取得に失敗しました");
+      if (!data?.ok)
+        throw new Error(data?.error ?? "AI候補の取得に失敗しました");
 
-      const raw = (data.list ?? []).filter(Boolean).map(s => String(s).trim());
+      const raw = (data.list ?? [])
+        .filter(Boolean)
+        .map((s) => String(s).trim());
       // クライアント側でも軽くバリデーション
-      const filtered = raw.filter(s => isValidTopic(s));
+      const filtered = raw.filter((s) => isValidTopic(s));
       setAiList(filtered);
       return filtered;
     } catch (e: any) {
@@ -154,7 +175,8 @@ const ParentTopicPage: React.FC = () => {
   }, []);
 
   // 候補クリックで入力欄に反映
-  const pickToInput = (text: string) => setTopic(text.slice(0, MAX_TOPIC_CHARS));
+  const pickToInput = (text: string) =>
+    setTopic(text.slice(0, MAX_TOPIC_CHARS));
 
   // 共通送信関数
   const submitTopic = async (txt: string) => {
@@ -166,9 +188,12 @@ const ParentTopicPage: React.FC = () => {
     setSending(true);
     setErr(null);
     try {
-      const { data, error } = await supabase.functions.invoke<SubmitTopicResp>("main-api", {
-        body: { action: "submit-topic", txt, tab_id },
-      });
+      const { data, error } = await supabase.functions.invoke<SubmitTopicResp>(
+        "main-api",
+        {
+          body: { action: "submit-topic", txt, tab_id },
+        }
+      );
       if (error) {
         setErr(error.message ?? "送信に失敗しました");
         return false;
@@ -197,19 +222,25 @@ const ParentTopicPage: React.FC = () => {
     setSending(true);
     setErr(null);
     try {
-      const { data, error } = await supabase.functions.invoke<AiListResp>("main-api", {
-        body: {
-          action: "assist-topic-gemini-list",
-          tab_id,
-          count: 5,
-          maxChars: MAX_TOPIC_CHARS,
-          submitIndex: index,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke<AiListResp>(
+        "main-api",
+        {
+          body: {
+            action: "assist-topic-gemini-list",
+            tab_id,
+            count: 5,
+            maxChars: MAX_TOPIC_CHARS,
+            submitIndex: index,
+          },
+        }
+      );
       if (error) throw new Error(error.message ?? "送信に失敗しました");
       if (!data?.ok) throw new Error(data?.error ?? "送信に失敗しました");
 
-      const submitted = (data.submitted ?? aiList[index] ?? "").slice(0, MAX_TOPIC_CHARS);
+      const submitted = (data.submitted ?? aiList[index] ?? "").slice(
+        0,
+        MAX_TOPIC_CHARS
+      );
       setTopic(submitted);
       navigate("/parentwaiting", { state: { topic: submitted } });
     } catch (e: any) {
@@ -240,16 +271,16 @@ const ParentTopicPage: React.FC = () => {
     }
 
     // 空欄：AI 候補から選ぶ（画面には出さない）
-    let candidate = aiList.find(s => isValidTopic(s)) ?? "";
+    let candidate = aiList.find((s) => isValidTopic(s)) ?? "";
 
     if (!candidate) {
       const fetched = await fetchAiTopicsInternal({ silent: true });
-      candidate = fetched.find(s => isValidTopic(s)) ?? "";
+      candidate = fetched.find((s) => isValidTopic(s)) ?? "";
     }
 
     if (!candidate) {
       candidate =
-        FALLBACK_TOPICS.find(s => isValidTopic(s)) ||
+        FALLBACK_TOPICS.find((s) => isValidTopic(s)) ||
         "あから始まる楽しいものは？";
     }
 
@@ -260,7 +291,7 @@ const ParentTopicPage: React.FC = () => {
   // カウントダウン：0 で handleTimeout
   useEffect(() => {
     const interval = setInterval(() => {
-      setSecondsLeft(prev => {
+      setSecondsLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
           handleTimeout();
@@ -276,19 +307,51 @@ const ParentTopicPage: React.FC = () => {
   return (
     <div className="parenttopick-bg">
       {/* 背景装飾（master スタイル維持） */}
-      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left" alt="cloud" />
-      <img src="/pixel_cloud_small.png" className="parenttopick-cloud right2" alt="cloud" />
-      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left2" alt="cloud" />
-      <img src="/pixel_cloud_small.png" className="parenttopick-cloud right3" alt="cloud" />
-      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left3" alt="cloud" />
-      <img src="/pixel_girl.png" className="parenttopick-character" alt="character" />
-      <img src="/pixel_sunflower.png" className="parenttopick-sunflower" alt="sunflower" />
+      <img
+        src="/pixel_cloud_small.png"
+        className="parenttopick-cloud left"
+        alt="cloud"
+      />
+      <img
+        src="/pixel_cloud_small.png"
+        className="parenttopick-cloud right2"
+        alt="cloud"
+      />
+      <img
+        src="/pixel_cloud_small.png"
+        className="parenttopick-cloud left2"
+        alt="cloud"
+      />
+      <img
+        src="/pixel_cloud_small.png"
+        className="parenttopick-cloud right3"
+        alt="cloud"
+      />
+      <img
+        src="/pixel_cloud_small.png"
+        className="parenttopick-cloud left3"
+        alt="cloud"
+      />
+      <img
+        src="/pixel_girl.png"
+        className="parenttopick-character"
+        alt="character"
+      />
+      <img
+        src="/pixel_sunflower.png"
+        className="parenttopick-sunflower"
+        alt="sunflower"
+      />
       <div className="parenttopick-fire-row">
         <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
         <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
         <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
       </div>
-      <img src="/pixel_tree_bonsai.png" className="parenttopick-tree-bonsai" alt="tree-bonsai" />
+      <img
+        src="/pixel_tree_bonsai.png"
+        className="parenttopick-tree-bonsai"
+        alt="tree-bonsai"
+      />
 
       {/* ラウンド表示 */}
       <div className="parenttopick-round">
@@ -319,7 +382,9 @@ const ParentTopicPage: React.FC = () => {
       </form>
 
       {/* 文字数ヘルパー */}
-      <div className="parenttopick-helper">{topic.length}/{MAX_TOPIC_CHARS}</div>
+      <div className="parenttopick-helper">
+        {topic.length}/{MAX_TOPIC_CHARS}
+      </div>
 
       {/* AI候補ブロック */}
       <div className="parenttopick-ai">
@@ -366,7 +431,9 @@ const ParentTopicPage: React.FC = () => {
                 </div>
               ))}
               {aiList.length === 0 && !aiErr && (
-                <div className="parenttopick-ai-hint">候補がまだありません。</div>
+                <div className="parenttopick-ai-hint">
+                  候補がまだありません。
+                </div>
               )}
             </div>
           </>
@@ -376,13 +443,13 @@ const ParentTopicPage: React.FC = () => {
       {/* 残り時間（右上固定） */}
       <div
         style={{
-          position: 'absolute',
-          top: '1vw',
-          right: '2vw',
-          color: '#fff',
-          fontWeight: 'bold',
-          fontSize: '3vw',
-          textShadow: '0.2vw 0.2vw 0 #ff69b4',
+          position: "absolute",
+          top: "1vw",
+          right: "2vw",
+          color: "#fff",
+          fontWeight: "bold",
+          fontSize: "3vw",
+          textShadow: "0.2vw 0.2vw 0 #ff69b4",
           zIndex: 40,
         }}
         aria-live="polite"
@@ -394,11 +461,11 @@ const ParentTopicPage: React.FC = () => {
       {err && (
         <div
           style={{
-            color: '#ff3333',
-            marginTop: '1vw',
-            fontWeight: 'bold',
-            fontSize: '1.2vw',
-            textShadow: '0.1vw 0.1vw 0 #fff',
+            color: "#ff3333",
+            marginTop: "1vw",
+            fontWeight: "bold",
+            fontSize: "1.2vw",
+            textShadow: "0.1vw 0.1vw 0 #fff",
           }}
         >
           {err}
