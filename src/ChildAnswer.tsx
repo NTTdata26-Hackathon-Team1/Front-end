@@ -13,7 +13,7 @@ function formatMs(ms: number) {
 }
 
 // ★ 追加: タイムアウト（2〜3分で調整）
-const TIMEOUT_MS = 2 * 1000; // 2分（3分にする場合は 3 * 60 * 1000）
+const TIMEOUT_MS = 2 * 60 * 1000; // 2分（3分にする場合は 3 * 60 * 1000）
 
 // sessionStorage から取得（TopMenu で保存済み想定）
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
@@ -192,7 +192,7 @@ const ChildAnswer: React.FC = () => {
       if (sentRef.current) return;
 
       // その時点の入力内容を送る（空なら空で送る）
-      submitCore(answer.trim(), true);
+      submitCore(answer.trim() || "(タイムアップ)", true);
     }, TIMEOUT_MS);
 
     return () => clearTimeout(timer);
