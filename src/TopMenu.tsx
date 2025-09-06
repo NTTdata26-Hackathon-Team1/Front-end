@@ -249,12 +249,11 @@ const TopMenu: React.FC = () => {
           {/* 最上部：ニックネーム */}
           <Box width="100%" maxWidth={520} mt={1}>
             <form
-              className="childanswer-form" // ← Form.tsx と同じ見た目
+              className="nickname-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!name.trim()) return;
                 setUserName(name.trim());
-                // ここでトースト等を出すなら呼ぶ
               }}
             >
               <TextField
@@ -262,20 +261,14 @@ const TopMenu: React.FC = () => {
                 variant="outlined"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                // 入力要素に Form と同じクラスを付与（見た目寄せ）
-                inputProps={{
-                  maxLength: 40,
-                  className: "childanswer-input",
-                  "aria-label": "nickname",
-                }}
-                // ルート側にも任意でクラスを付けたい場合
-                // className="childanswer-input"
+                inputProps={{ maxLength: 40, "aria-label": "nickname" }}
                 fullWidth
+                className="nickname-input"
               />
               <Button
                 type="submit"
                 disabled={!name.trim() || submitting}
-                className="childanswer-btn" // ← Button.tsx のデフォルトと同じ
+                className="childanswer-btn nickname-btn"
               >
                 送信
               </Button>
@@ -289,7 +282,7 @@ const TopMenu: React.FC = () => {
             </Typography>
             <Box mt={1} display="flex" flexDirection="column" gap={2}>
               <TextField
-                label="room name"
+                label="部屋名"
                 variant="outlined"
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
@@ -297,13 +290,12 @@ const TopMenu: React.FC = () => {
                 fullWidth
               />
               <TextField
-                label="round数"
+                label="ラウンド数"
                 variant="outlined"
                 type="number"
                 value={rounds}
                 onChange={(e) => setRounds(e.target.value)}
                 inputProps={{ inputMode: "numeric", step: 1, min: 1 }}
-                helperText="正の整数を入力"
                 fullWidth
               />
               {/* 人数 + 右側に「部屋を作成」ボタン */}
@@ -315,7 +307,6 @@ const TopMenu: React.FC = () => {
                   value={players}
                   onChange={(e) => setPlayers(e.target.value)}
                   inputProps={{ inputMode: "numeric", step: 1, min: 1 }}
-                  helperText="正の整数を入力"
                   sx={{ flex: 1 }}
                 />
                 <Button

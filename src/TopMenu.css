@@ -33,6 +33,31 @@
   padding: 0 16px;
 }
 
+.topmenu-form-box h2 {
+  font-weight: 700; /* 太字 */
+}
+
+.topmenu-form-box {
+  background: #7f9be4; /* Cardと同じ色 */
+  border-radius: 12px; /* Cardに合わせる */
+  padding: 24px; /* 余白を確保 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 入力欄の背景をFormと同じグレーに */
+.topmenu-form-box .MuiOutlinedInput-root {
+  background: #f5f5f5; /* ← Formのinput背景に近い薄いグレー */
+  border-radius: 6px;
+}
+
+/* ラベルや文字色は濃い目に戻す */
+.topmenu-form-box .MuiFormLabel-root {
+  color: #18194a;
+}
+.topmenu-form-box .MuiInputBase-input {
+  color: #000;
+}
+
 /* TopMenu 内の送信ボタンだけ */
 .topmenu-form-box .childanswer-btn {
   writing-mode: horizontal-tb;
