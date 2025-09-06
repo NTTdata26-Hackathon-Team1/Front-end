@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import './ParentWaiting.css';
-import DanmakuInput from './DanmakuInput';   
+import DanmakuInput from './DanmakuInput';
+import Title from "./component/title";
+import Round from "./component/round";
 
 const POLL_MS = 2000; // 2秒おきに確認
 
@@ -133,50 +135,35 @@ const ParentWaiting: React.FC = () => {
 
     return (
         <div className="parentwaiting-bg">
-            <div className="parentwaiting-round"
-            style={{
-                textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-                fontWeight: 900,
-                color: "#fcfbfbff",
-            }}>
-                ROUND{roundLoading ? '…' : (round ?? '—')}
+            {/* ラウンド表示（Roundコンポーネントを使用） */}
+            <div
+                style={{
+                    marginTop: "2rem",
+                    marginBottom: "2rem",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <Round round={round} loading={roundLoading} />
             </div>
+
             <div className="parentwaiting-titlebox">
                 <div
-                    className="parentwaiting-title"
                     style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        margin: "2rem 0",
                         fontSize: "4rem",
-                        fontWeight: 700,
                         letterSpacing: "0.1em",
+                        fontWeight: 100,
                         color: "#fcfbfbff",
-                        textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
+                        textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
+                        textAlign: "center",
+                        margin: "5rem 0 2rem 0",
+                        display: "inline-block",
                     }}
                 >
-                    {"子が回答を入力中です".split("").map((char, i) => (
-                        <span
-                            key={i}
-                            style={{
-                                display: "inline-block",
-                                animation: `bounceChar 0.8s ${i * 0.08}s infinite`,
-                            }}
-                        >
-                            {char}
-                        </span>
-                    ))}
-                    <style>
-                        {`
-                        @keyframes bounceChar {
-                            0% { transform: translateY(0);}
-                            30% { transform: translateY(-18px);}
-                            60% { transform: translateY(0);}
-                            100% { transform: translateY(0);}
-                        }
-                        `}
-                    </style>
+                    <Title
+                        text="子が回答を入力中です"
+                    />
                 </div>
             </div>
             <img src="/pixel_cloud_small.png" alt="" className="parentwaiting-cloud left" />

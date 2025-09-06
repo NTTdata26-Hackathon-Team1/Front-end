@@ -346,6 +346,7 @@ const ChildAnswer: React.FC = () => {
       {errorMsg && <div className="childanswer-error">{errorMsg}</div>}
       <DanmakuInput fixedBottom />
     </div>
+    
   );
 };
 
