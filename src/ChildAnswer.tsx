@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import "./ChildAnswer.css";
 import DanmakuInput from "./DanmakuInput";
+import Round from "./component/round";
 
 // ★ mm:ss 文字列に整形
 function formatMs(ms: number) {
@@ -254,7 +255,7 @@ const ChildAnswer: React.FC = () => {
       </div>
 
       {/* ラウンド数（左上固定） */}
-      <div
+      {/* <div
         className="childanswer-round"
         style={{
           textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
@@ -263,7 +264,8 @@ const ChildAnswer: React.FC = () => {
         }}
       >
         ROUND {roundLoading ? "…" : round ?? "—"}
-      </div>
+      </div> */}
+      <Round round={round} loading={roundLoading} />
 
       {/* タイトル（中央大きく）＋お題 */}
       <div

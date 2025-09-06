@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import DanmakuInput from './DanmakuInput';
 import './TopMenu.css';
+import Title from './component/title';
 
 // ---- ID ユーティリティ ----
 export const getTabId = () => {
@@ -195,7 +196,8 @@ const TopMenu: React.FC = () => {
 
     return (
         <>
-            <h1 className="topmenu-title">朝までそれ正解</h1>
+            {/* <h1 className="topmenu-title">朝までそれ正解</h1> */}
+            <Title text="朝までそれ正解" />
             {/* 雲・花・旗、きのこ */}
 			<img src="/pixel_cloud_transparent.png" className="cloud-img cloud-left1" alt="cloud" />
 			<img src="/pixel_cloud_transparent.png" className="cloud-img cloud-right2" alt="cloud" />
