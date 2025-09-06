@@ -1,12 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react"; // ★ useRef 追加
 import { Typography, TextField, Button, Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 
+async function getRandomTopicText(): Promise<string | null> {
+  // 件数だけ先に取る（head:true）
+  const { count, error: countErr } = await supabase
+    .from("topics")
+    .select("id", { count: "exact", head: true });
+
+  if (countErr || !count || count <= 0) return null;
+
+  const offset = Math.floor(Math.random() * count);
+
+  // OFFSET 指定で1件だけ取得
+  const { data, error } = await supabase
+    .from("topics")
+    .select("text")
+    .order("id", { ascending: true })
+    .range(offset, offset);
+
+  if (error || !data || data.length === 0) return null;
+  return (data[0].text as string) ?? null;
+}
+
+// ★ モックお題（フロントのみ）
+const MOCK_TOPICS = [
+  "「た」から始まる好きな朝ごはんといえば？",
+  "「と」から始まる子どもの頃にハマった遊び",
+  "「き」から始まる一度は住んでみたい街",
+  "「す」から始まる最近つい課金しちゃったもの",
+];
+
 // sessionStorage から引き継ぎ
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
 
-type GetRoundResp = { ok: boolean; round?: number; error?: string };
+// 変更
+type GetRoundResp = {
+  ok: boolean;
+  round?: number;
+  room_id?: string;
+  error?: string;
+};
 type SubmitTopicResp = { ok: boolean; row?: any; error?: string };
 
 const ParentTopicPage: React.FC = () => {
@@ -14,41 +49,83 @@ const ParentTopicPage: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // 入力値の最新を参照するためのRef（タイムアウト内で使う）
+  const topicRef = useRef(topic); // ★ 追加
+  useEffect(() => {
+    topicRef.current = topic;
+  }, [topic]); // ★ 追加
+
   // 左上：ラウンド表示
   const [round, setRound] = useState<number | null>(null);
   const [roundLoading, setRoundLoading] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
-  // 20秒カウントダウンして自動遷移
+  // 20秒カウントダウン（表示のみ）
   const [secondsLeft, setSecondsLeft] = useState<number>(20);
   useEffect(() => {
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          navigate("/parentwaiting");
-          return 0;
-        }
-        return prev - 1;
-      });
+      setSecondsLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
-
     return () => clearInterval(interval);
-  }, [navigate]);
-
-  // ページ起動時：time_management を呼ぶ、バックエンドでタイマー管理
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase.functions.invoke(
-        "time_management",
-        {
-          body: { action: "ping" },
-        }
-      );
-      console.log("ping:", { data, error });
-    })();
   }, []);
+
+  // ★ 追加：room_id をどこか（sessionStorageなど）から読む
+  const getRoomId = () => sessionStorage.getItem("room_id") ?? "";
+
+  // ✅ 差し替え後（抽選→保存までEdgeで一発）
+  useEffect(() => {
+    const timeout = window.setTimeout(async () => {
+      // 20秒経過時点の入力を確認
+      let chosen = topicRef.current.trim();
+      let source: "db" | "mock" | "manual" = "manual";
+
+      if (!chosen) {
+        const room_id = getRoomId();
+
+        if (room_id) {
+          // Edge Functionで抽選→保存（冪等）
+          const { data: fin, error: finErr } = await supabase.functions.invoke(
+            "time_management",
+            { body: { action: "finalize-topic-if-needed", room_id } }
+          );
+
+          if (!finErr && fin?.ok && fin.topic?.trim()) {
+            chosen = fin.topic.trim();
+            source = "db"; // Edgeで確定保存済み
+          } else {
+            // フォールバック（モック）
+            chosen =
+              MOCK_TOPICS[Math.floor(Math.random() * MOCK_TOPICS.length)];
+            source = "mock";
+
+            // 任意：念のため既存 submit-topic で保存してもOK
+            const tab_id = getTabId();
+            if (tab_id) {
+              await supabase.functions.invoke<SubmitTopicResp>("main-api", {
+                body: { action: "submit-topic", txt: chosen, tab_id },
+              });
+            }
+          }
+        } else {
+          // room_id が無いと Edge 側で保存できないのでモックにフォールバック
+          chosen = MOCK_TOPICS[Math.floor(Math.random() * MOCK_TOPICS.length)];
+          source = "mock";
+        }
+
+        setTopic(chosen); // UIにも反映
+      }
+
+      // デバッグ保険（リロード対応）
+      sessionStorage.setItem("last_topic", chosen);
+      sessionStorage.setItem("last_topic_source", source);
+
+      // 親待機へ（どこから来たかも渡すと検証しやすい）
+      navigate("/parentwaiting", { state: { topic: chosen, source } });
+    }, 20_000);
+
+    return () => clearTimeout(timeout);
+  }, [navigate]);
 
   // ページ起動時：main-api の get-round を呼んで round を取得して表示
   useEffect(() => {
@@ -75,7 +152,17 @@ const ParentTopicPage: React.FC = () => {
           setErr((data as any)?.error ?? "ラウンド情報の取得に失敗しました");
           return;
         }
-        setRound(data.round);
+
+        // ★ round があれば表示
+        if (typeof data.round === "number") setRound(data.round);
+
+        // ★ ここが重要：room_id を保存（Edgeの finalize-topic-if-needed で使用）
+        if (data.room_id && data.room_id.trim()) {
+          sessionStorage.setItem("room_id", data.room_id.trim());
+          console.log("[ParentTopic] set room_id:", data.room_id);
+        } else {
+          console.warn("[ParentTopic] room_id missing in get-round response");
+        }
       } catch (e: any) {
         setErr(
           e?.message ?? "ラウンド情報の取得に失敗しました（unknown error）"
@@ -102,15 +189,10 @@ const ParentTopicPage: React.FC = () => {
     setErr(null);
 
     try {
-      // ← 変更点：main-api の submit-topic を呼ぶ（txt と tab_id のみ必要）
       const { data, error } = await supabase.functions.invoke<SubmitTopicResp>(
         "main-api",
         {
-          body: {
-            action: "submit-topic",
-            txt,
-            tab_id,
-          },
+          body: { action: "submit-topic", txt, tab_id },
         }
       );
 
@@ -152,7 +234,7 @@ const ParentTopicPage: React.FC = () => {
         あなたは親です
       </Typography>
       <Typography variant="subtitle1" gutterBottom>
-        お題を入力してください
+        お題を入力してください（未入力なら20秒後に自動補完）
       </Typography>
 
       <Box
@@ -179,7 +261,7 @@ const ParentTopicPage: React.FC = () => {
         </Button>
       </Box>
 
-      {/* ← ここで残り時間を表示 */}
+      {/* 残り時間表示（カウントダウンのみ。遷移はsetTimeout側で実施） */}
       <Typography variant="subtitle1" sx={{ mt: 2 }}>
         残り時間: {secondsLeft} 秒
       </Typography>
