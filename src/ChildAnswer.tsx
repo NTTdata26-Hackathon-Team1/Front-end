@@ -13,7 +13,7 @@ function formatMs(ms: number) {
 }
 
 // ★ 追加: タイムアウト（2〜3分で調整）
-const TIMEOUT_MS = 2 * 60 * 1000; // 2分（3分にする場合は 3 * 60 * 1000）
+const TIMEOUT_MS = 2 * 1000; // 2分（3分にする場合は 3 * 60 * 1000）
 
 // sessionStorage から取得（TopMenu で保存済み想定）
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
