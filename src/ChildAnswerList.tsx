@@ -147,7 +147,7 @@ function ChildAnswerList() {
     <div className="childanswerlist-bg">
       {/* 左上：ラウンド表示（pixel-artラベル） */}
       <div className="childanswerlist-round">
-        第 {roundLoading ? '…' : (round ?? '—')} ターン
+        ROUND {roundLoading ? '…' : (round ?? '—')}
       </div>
 
       {/* タイトル */}
@@ -177,7 +177,7 @@ function ChildAnswerList() {
             </div>
           ))
         ) : (
-          <div className="childanswerlist-answer childanswerlist-answer-gray">（まだ回答はありません）</div>
+          <div className="childanswerlist-answer">（まだ回答はありません）</div>
         )}
       </div>
       {/* DanmakuInputを最下部に追加 */}

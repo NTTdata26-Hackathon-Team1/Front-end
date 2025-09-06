@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Typography, TextField, Button, Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
+import DanmakuInput from "./DanmakuInput";
+import "./ParentTopicPage.css";
 
 // sessionStorage から引き継ぎ
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
@@ -134,62 +135,75 @@ const ParentTopicPage: React.FC = () => {
   };
 
   return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      mt={8}
-      sx={{ position: "relative", width: "100%" }}
-    >
-      {/* 画面左上表示：ラウンド */}
-      <Box sx={{ position: "absolute", top: 8, left: 12 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-          第 {roundLoading ? "…" : round ?? "—"} ターン
-        </Typography>
-      </Box>
+    <div className="parenttopick-bg">
+      {/* 雲や背景装飾 */}
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud right2" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left2" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud right3" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left3" alt="cloud" />
+      <img src="/pixel_girl.png" className="parenttopick-character" alt="character" />
+      <img src="/pixel_sunflower.png" className="parenttopick-sunflower" alt="sunflower" />
+      <div className="parenttopick-fire-row">
+        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
+        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
+        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
+      </div>
+      <img src="/pixel_tree_bonsai.png" className="parenttopick-tree-bonsai" alt="tree-bonsai" />
 
-      <Typography variant="h4" component="h1" gutterBottom>
-        あなたは親です
-      </Typography>
-      <Typography variant="subtitle1" gutterBottom>
-        お題を入力してください
-      </Typography>
+      {/* ラウンド表示 */}
+      <div className="parenttopick-round">
+        ROUND {roundLoading ? "…" : round ?? "—"}
+      </div>
 
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        display="flex"
-        alignItems="center"
-        gap={2}
-        mt={4}
-      >
-        <TextField
-          label="お題入力欄"
-          variant="outlined"
+
+  {/* タイトル・サブタイトル（両方ともparenttopick-titleで2行表示） */}
+  <div className="parenttopick-title">あなたは親です</div>
+  <div className="parenttopick-subtitle">お題を入力してください</div>
+
+
+      {/* 入力フォーム */}
+      <form className="parenttopick-form" onSubmit={handleSubmit}>
+        <input
+          className="parenttopick-input"
+          type="text"
+          placeholder="お題入力欄"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
+          disabled={sending}
         />
-        <Button
+        <button
+          className="parenttopick-btn"
           type="submit"
-          variant="contained"
           disabled={!topic.trim() || sending}
-          color="primary"
         >
           {sending ? "送信中…" : "送信"}
-        </Button>
-      </Box>
+        </button>
+      </form>
 
-      {/* ← ここで残り時間を表示 */}
-      <Typography variant="subtitle1" sx={{ mt: 2 }}>
+
+      {/* 残り時間（右上固定） */}
+      <div style={{
+        position: 'absolute',
+        top: '1vw',
+        right: '2vw',
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: '3vw',
+        textShadow: '0.2vw 0.2vw 0 #ff69b4',
+        zIndex: 40
+      }}>
         残り時間: {secondsLeft} 秒
-      </Typography>
+      </div>
 
+      {/* エラー表示 */}
       {err && (
-        <Typography color="error" sx={{ mt: 2 }}>
+        <div style={{ color: '#ff3333', marginTop: '1vw', fontWeight: 'bold', fontSize: '1.2vw', textShadow: '0.1vw 0.1vw 0 #fff' }}>
           {err}
-        </Typography>
+        </div>
       )}
-    </Box>
+      <DanmakuInput fixedBottom />
+    </div>
   );
 };
 
