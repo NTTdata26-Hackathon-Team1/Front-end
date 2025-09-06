@@ -9,9 +9,15 @@ const Round: React.FC<RoundProps> = ({ round, loading }) => (
   <div
     className="childanswer-round"
     style={{
-      textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
+      fontFamily: "'Pixel', 'Arial', sans-serif",
+      color: "#fff",
+      fontSize: "2vw",
+      textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
+      textAlign: "left",
       fontWeight: 900,
-      color: "#fcfbfbff",
+      marginTop: "1vw",
+      marginLeft: "2vw",
+      zIndex: 10,
     }}
   >
     ROUND {loading ? "…" : round ?? "—"}

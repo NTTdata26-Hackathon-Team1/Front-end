@@ -8,9 +8,15 @@ const Title: React.FC<TitleProps> = ({ text = "朝までそれ正解" }) => (
   <h1
     className="standby-title"
     style={{
-      textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
+      fontFamily: "'Pixel', 'Arial', sans-serif",
+      color: "#fff",
+      fontSize: "6vw",
+      textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
+      textAlign: "center",
+      marginTop: "0vw",
+      marginBottom: "4vw",
+      zIndex: 10,
       fontWeight: 900,
-      color: "#fcfbfbff",
     }}
   >
     {text}
