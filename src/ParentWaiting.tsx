@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Typography, Box, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import './ParentWaiting.css';
+import DanmakuInput from './DanmakuInput';   
 
 const POLL_MS = 2000; // 2秒おきに確認
 
@@ -131,33 +132,24 @@ const ParentWaiting: React.FC = () => {
     }, []);
 
     return (
-        <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            mt={8}
-            sx={{ position: 'relative', width: '100%' }}
-        >
-            {/* ★ 追加: 左上のラウンド表示 */}
-            <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                    第 {roundLoading ? '…' : (round ?? '—')} ターン
-                </Typography>
-            </Box>
-
-            <Typography variant="h4" gutterBottom>
-                回答入力中です
-            </Typography>
-
-            <CircularProgress size={80} />
-
-            {errorMsg && (
-                <Typography color="error" sx={{ mt: 2 }}>
-                    {errorMsg}
-                </Typography>
-            )}
-        </Box>
+        <div className="parentwaiting-bg">
+            <div className="parentwaiting-round">
+                ROUND{roundLoading ? '…' : (round ?? '—')}
+            </div>
+            <div className="parentwaiting-titlebox">
+                <div className="parentwaiting-title">子が回答を入力中です</div>
+            </div>
+            <img src="/pixel_cloud_small.png" alt="" className="parentwaiting-cloud left" />
+            <img src="/pixel_cloud_transparent.png" alt="" className="parentwaiting-cloud right" />
+            <img src="/pixel_character.png" alt="" className="parentwaiting-character" />
+            <img src="/pixel_girl.png" alt="" className="parentwaiting-girl" />
+            <img src="/pixel_bigtree.png" alt="" className="parentwaiting-bigtree" />
+            <img src="/pixel_sunflower.png" alt="" className="parentwaiting-sunflower1" />
+            <img src="/pixel_sunflower.png" alt="" className="parentwaiting-sunflower2" />
+            <img src="/pixel_sunset.png" alt="" className="parentwaiting-sunset" />
+            {errorMsg && <div className="parentwaiting-error">{errorMsg}</div>}
+            <DanmakuInput fixedBottom />
+        </div>
     );
 };
 

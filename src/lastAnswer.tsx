@@ -174,7 +174,8 @@ const LastAnswer: React.FC = () => {
     <div
       style={{
         minHeight: "100vh",
-        background: "#fff",
+        width: "100vw",
+        height: "100vh",
         color: "#222",
         display: "flex",
         flexDirection: "column",
@@ -367,8 +368,60 @@ const LastAnswer: React.FC = () => {
         onMouseLeave={() => setIsPressed(false)}
         onClick={handlePlayAgain}
       >
-        もう一度プレイ
+        もう一遊ぶ
       </button>
+
+      {/* tree_bonsai画像を2つ追加（左下・右下） */}
+      <img
+        src={process.env.PUBLIC_URL + '/pixel_tree_bonsai.png'}
+        alt="bonsai-left"
+        style={{
+          position: 'fixed',
+          bottom: '8vw',
+          left: '2vw',
+          width: '25vw',
+          height: 'auto',
+          zIndex: 10,
+        }}
+      />
+      <img
+        src={process.env.PUBLIC_URL + '/pixel_tree_bonsai.png'}
+        alt="bonsai-right"
+        style={{
+          position: 'fixed',
+          bottom: '8vw',
+          right: '2vw',
+          width: '25vw',
+          height: 'auto',
+          zIndex: 10,
+        }}
+      />
+
+      {/* sunflower画像を2つ追加（左下・右下、bonsaiの横） */}
+      <img
+        src={process.env.PUBLIC_URL + '/pixel_sunflower.png'}
+        alt="sunflower-left"
+        style={{
+          position: 'fixed',
+          bottom: '8vw',
+          left: '30vw',
+          width: '3vw',
+          height: 'auto',
+          zIndex: 10,
+        }}
+      />
+      <img
+        src={process.env.PUBLIC_URL + '/pixel_sunflower.png'}
+        alt="sunflower-right"
+        style={{
+          position: 'fixed',
+          bottom: '8vw',
+          right: '30vw',
+          width: '3vw',
+          height: 'auto',
+          zIndex: 10,
+        }}
+      />
 
       {/* アニメーションCSS */}
       <style>

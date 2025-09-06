@@ -1,53 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import './ChildAnswerList.css';
+import DanmakuInput from './DanmakuInput';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
-
-const containerStyle: React.CSSProperties = {
-  textAlign: 'center',
-  marginTop: '20px',
-  position: 'relative', // 左上ラベルを載せるため
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: '2rem',
-  marginBottom: '30px',
-  color: '#555',
-};
-
-const answersStyle: React.CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  justifyContent: 'center',
-  gap: '40px 40px',
-  marginBottom: '40px',
-};
-
-const answerStyle: React.CSSProperties = {
-  width: '300px',
-  height: '180px',
-  background: '#eee',
-  border: '2px solid #888',
-  borderRadius: '40px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '1.2rem',
-  padding: '0 20px',
-  textAlign: 'center',
-  lineHeight: 1.5,
-  whiteSpace: 'pre-wrap',
-};
-
-const roundBadgeStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: 8,
-  left: 12,
-  fontWeight: 700,
-  color: '#333',
-};
 
 const POLL_MS = 3000;
 
@@ -183,30 +141,47 @@ function ChildAnswerList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 色分けは行わず、すべて同じカードスタイルで表示します。
+
   return (
-    <div style={containerStyle}>
-      {/* 左上：ラウンド表示 */}
-      <div style={roundBadgeStyle}>
+    <div className="childanswerlist-bg">
+      {/* 左上：ラウンド表示（pixel-artラベル） */}
+      <div className="childanswerlist-round">
         第 {roundLoading ? '…' : (round ?? '—')} ターン
       </div>
 
-      <h2 style={titleStyle}>回答一覧</h2>
+      {/* タイトル */}
+      <h2 className="childanswerlist-title">回答一覧</h2>
 
       {errorMsg && (
-        <div style={{ color: 'crimson', marginBottom: 16 }}>{errorMsg}</div>
+        <div className="childanswerlist-error">{errorMsg}</div>
       )}
 
-      <div style={answersStyle}>
+      {/* イラスト配置例: 雲・旗・きのこ・キャラなど */}
+      <img src="/pixel_cloud_small.png" alt="" className="childanswerlist-cloud-small" />
+      <img src="/pixel_cloud_transparent.png" alt="" className="childanswerlist-cloud-transparent" />
+      <img src="/pixel_tower.png" alt="" className="childanswerlist-tower" />
+      <img src="/pixel_tree.png" alt="" className="childanswerlist-tree" />
+      <img src="/pixel_sunflower.png" alt="" className="childanswerlist-sunflower" />
+      {/* 回答カード一覧 */}
+      <div className="childanswerlist-answers">
         {answers.length > 0 ? (
           answers.map((a, idx) => (
-            <div key={`${a.user_name}-${idx}`} style={answerStyle}>
-              {`${a.user_name} : ${a.input_QA}`}
+            <div
+              key={`${a.user_name}-${idx}`}
+              className="childanswerlist-answer"
+            >
+              <span className="childanswerlist-answer-user">{a.user_name}</span>
+              <span className="childanswerlist-answer-sep"> : </span>
+              <span className="childanswerlist-answer-text">{a.input_QA}</span>
             </div>
           ))
         ) : (
-          <div style={answerStyle}>（まだ回答はありません）</div>
+          <div className="childanswerlist-answer childanswerlist-answer-gray">（まだ回答はありません）</div>
         )}
       </div>
+      {/* DanmakuInputを最下部に追加 */}
+      <DanmakuInput fixedBottom />
     </div>
   );
 }

@@ -1,0 +1,135 @@
+/* pixel-art世界用 ParentSelectAnswer.css */
+.parentselectanswer-bg {
+  width: 100vw;
+  min-height: 100vh;
+  position: relative;
+  background: #18194a;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+.parentselectanswer-round {
+    position: absolute;
+    top: 1vw;
+    left: 10vw;
+    transform: translateX(-50%);
+    font-size: 2vw;
+    color: #fffbe6;
+    font-weight: bold;
+    text-shadow: 0.3vw 0.3vw 0 #ff69b4;
+    z-index: 10;
+    letter-spacing: 0.2em;
+}
+
+.parentselectanswer-title {
+  font-size: 3vw;
+  margin-bottom: 32px;
+  color: #ffffff;
+  border-radius: 16px;
+  display: inline-block;
+  padding: 12px 32px;
+  text-shadow: 0 0.3vw 0 #ff69b4, 0 0.6vw 0 #ff69b4;
+  z-index: 10;
+}
+.parentselectanswer-error {
+  color: crimson;
+  margin-bottom: 16px;
+  font-weight: bold;
+}
+
+.parentselectanswer-loading {
+  margin-bottom: 16px;
+  color: #555;
+}
+
+.parentselectanswer-answers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 2vw 2vw;
+  margin-bottom: 4vw;
+  width: 100vw;
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: 0 2vw;
+}
+
+.parentselectanswer-answer {
+  width: min(24vw, 340px);
+  min-width: 220px;
+  height: min(16vw, 180px);
+  min-height: 120px;
+  background: #f7f7f7;
+  border: 2px solid #888;
+  border-radius: 2vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  padding: 0 1vw;
+  text-align: center;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  box-shadow: 0 4px 16px #0001;
+  margin-bottom: 0;
+}
+
+.parentselectanswer-answer.selected {
+  border: 2px solid red;
+}
+
+.parentselectanswer-answer-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+}
+
+.parentselectanswer-answer-text {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.parentselectanswer-answer-empty {
+  color: #aaa;
+}
+
+.parentselectanswer-button {
+  width: 120px;
+  height: 80px;
+  font-size: 1.5rem;
+  border-radius: 20px;
+  border: 1px solid #888;
+  background: #f5f5f5;
+  cursor: pointer;
+  margin-bottom: 32px;
+  box-shadow: 0 2px 8px #0002;
+}
+.parentselectanswer-button:disabled {
+  background: #eee;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* イラスト配置例 */
+.parentselectanswer-cloud1 {position: absolute;left:2vw;top:5vw;width: 16vw;height: 7vw;z-index: 2;}
+.parentselectanswer-cloud2 {position: absolute;left:5vw;transform: translateX(-50%);top:10vw;width: 16vw;height: 7vw;z-index: 2;}
+.parentselectanswer-cloud3 {position: absolute;right:10vw;top:2vw;width: 16vw;height: 7vw;z-index: 2;}
+.parentselectanswer-vine1 {position: absolute;left:5vw;top:-1vw;width: 10vw;height: 25vw;z-index: 2;}
+.parentselectanswer-vine2 {position: absolute;right:5vw;top:-1vw;width: 10vw;height: 25vw;z-index: 2;}
+.parentselectanswer-sunflower-row {
+  display: flex;
+  gap: 2vw;
+  position: absolute;
+  right:30;
+  bottom: 8vw;
+  z-index: 2;
+  align-items: flex-end; /* ← これで下ぞろえになります */
+}
+.parentselectanswer-sunflower {width: 3vw; height: 5vw;bottom: 8vw;}
+.parentselectanswer-cactus1 {position: absolute;width: 10vw; height: 10vw;bottom: 8vw; right: 5vw;bottom : 8vw;}
+.parentselectanswer-cactus2 {position: absolute;width: 10vw; height: 10vw;bottom: 8vw;left: 5vw;bottom : 8vw;}

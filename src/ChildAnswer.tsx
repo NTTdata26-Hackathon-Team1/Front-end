@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, TextField, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import './ChildAnswer.css';
+import DanmakuInput from './DanmakuInput';
 
 // sessionStorage から取得（TopMenu で保存済み想定）
 const getTabId = () => sessionStorage.getItem('tab_id') ?? '';
@@ -138,62 +139,62 @@ const ChildAnswer: React.FC = () => {
     };
 
     return (
-        <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            mt={8}
-            sx={{ position: 'relative', width: '100%' }}
-        >
-            {/* 左上：ラウンド表示 */}
-            <Box sx={{ position: 'absolute', top: 8, left: 12 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                    第 {roundLoading ? '…' : (round ?? '—')} ターン
-                </Typography>
-            </Box>
+        <div className="childanswer-bg">
+            {/* 雲・キャラ・花・火・盆栽などイラスト */}
+            <img src="/pixel_cloud_small.png" alt="" className="childanswer-cloud-small" />
+            <img src="/pixel_cloud_transparent.png" alt="" className="childanswer-cloud-transparent" />
+            <img src="/pixel_character.png" alt="" className="childanswer-character" />
+            <img src="/pixel_girl.png" alt="" className="childanswer-girl" />
+            <img src="/pixel_flower.png" alt="" className="childanswer-flower1" />
+            <img src="/pixel_flower.png" alt="" className="childanswer-flower2" />
+            <img src="/pixel_tree_bonsai.png" alt="" className="childanswer-tree-bonsai" />
+            <img src="/pixel_moon.png" alt="" className="childanswer-moon" />
+            <img src="/pixel_mushroom.png" alt="" className="childanswer-mushroom" />
+            {/* パイプ */}
+            <div className="childanswer-pipe-row">
+                <img src="/pixel_pipe.png" alt="" className="childanswer-pipe1" />
+                <img src="/pixel_pipe.png" alt="" className="childanswer-pipe2" />
+                <img src="/pixel_pipe.png" alt="" className="childanswer-pipe3" />
 
-            <Typography variant="h4" component="h1" gutterBottom>
+            </div>
+
+            {/* ラウンド数（左上固定） */}
+            <div className="childanswer-round">
+                ROUND {roundLoading ? '…' : (round ?? '—')}
+            </div>
+
+            {/* タイトル（中央大きく）＋お題 */}
+            <div className="childanswer-title">
                 {loadingTopic
                     ? 'お題を取得中…'
                     : topic
                         ? <>お題は 「{topic}」 です</>
-                        : 'お題は未設定です'}
-            </Typography>
+                        : 'お題は未設定'}
+            </div>
 
-            <Typography variant="subtitle1" gutterBottom>
-                回答してください
-            </Typography>
-
-            <Box
-                component="form"
-                onSubmit={handleSubmit}
-                display="flex"
-                alignItems="center"
-                gap={2}
-                mt={4}
-            >
-                <TextField
-                    label="解答入力欄"
-                    variant="outlined"
+            {/* 入力フォーム */}
+            <form className="childanswer-form" onSubmit={handleSubmit}>
+                <input
+                    className="childanswer-input"
+                    type="text"
+                    placeholder="解答を入力してください"
                     value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
+                    onChange={e => setAnswer(e.target.value)}
                 />
-                <Button
+                <button
+                    className="childanswer-btn"
                     type="submit"
-                    variant="contained"
                     disabled={!answer.trim() || sending}
-                    color="primary"
                 >
                     {sending ? '送信中…' : '送信'}
-                </Button>
-            </Box>
+                </button>
+            </form>
 
             {errorMsg && (
-                <Typography color="error" sx={{ mt: 2 }}>
-                    {errorMsg}
-                </Typography>
+                <div className="childanswer-error">{errorMsg}</div>
             )}
-        </Box>
+            <DanmakuInput fixedBottom />
+        </div>
     );
 };
 

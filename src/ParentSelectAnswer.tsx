@@ -1,70 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import './ParentSelectAnswer.css';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
-
-const containerStyle: React.CSSProperties = {
-  textAlign: 'center',
-  marginTop: '20px',
-  position: 'relative', // 左上バッジ用
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: '2rem',
-  marginBottom: '30px',
-  color: '#555',
-};
-
-const answersStyle: React.CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  justifyContent: 'center',
-  gap: '40px 40px',
-  marginBottom: '40px',
-};
-
-const answerStyle: React.CSSProperties = {
-  width: '300px',
-  height: '180px',
-  background: '#eee',
-  border: '2px solid #888',
-  borderRadius: '40px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '1.2rem',
-  cursor: 'pointer',
-  transition: 'border-color 0.2s',
-  padding: '0 20px',
-  textAlign: 'center',
-  lineHeight: 1.5,
-  whiteSpace: 'pre-wrap',
-};
-
-const selectedAnswerStyle: React.CSSProperties = {
-  ...answerStyle,
-  border: '2px solid red',
-};
-
-const buttonStyle: React.CSSProperties = {
-  width: '120px',
-  height: '80px',
-  fontSize: '1.5rem',
-  borderRadius: '20px',
-  border: '1px solid #888',
-  background: '#f5f5f5',
-  cursor: 'pointer',
-};
-
-const roundBadgeStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: 8,
-  left: 12,
-  fontWeight: 700,
-  color: '#333',
-};
 
 // tab_id 解決ヘルパー（localStorage → sessionStorage → URL ?tab_id=）
 function resolveTabId(): string | null {
@@ -216,39 +156,59 @@ function ParentSelectAnswer() {
   };
 
   return (
-    <div style={containerStyle}>
+    <div className="parentselectanswer-bg">
       {/* 左上：ラウンド表示 */}
-      <div style={roundBadgeStyle}>
-        第 {roundLoading ? '…' : (round ?? '—')} ターン
+      <div className="parentselectanswer-round">
+        第ROUND{roundLoading ? '…' : (round ?? '—')}
       </div>
 
-      <h2 style={titleStyle}>ベストな回答を選択してください</h2>
+      {/* タイトル */}
+      <h2 className="parentselectanswer-title">ベストな回答を選択してください</h2>
 
-      {loading && <div style={{ marginBottom: 16 }}>読み込み中…</div>}
-      {errMsg && <div style={{ color: 'crimson', marginBottom: 16 }}>{errMsg}</div>}
+      {loading && <div className="parentselectanswer-loading">読み込み中…</div>}
+      {errMsg && <div className="parentselectanswer-error">{errMsg}</div>}
 
-      <div style={answersStyle}>
+      {/* イラスト配置例: 雲・旗・きのこ・キャラなど */}
+      <img src="/pixel_cloud_small.png" alt="" className="parentselectanswer-cloud1" />
+      <img src="/pixel_cloud_small.png" alt="" className="parentselectanswer-cloud2" />
+      <img src="/pixel_cloud_small.png" alt="" className="parentselectanswer-cloud3" />
+      <img src="/pixel_vine.png" alt="" className="parentselectanswer-vine1" />
+      <img src="/pixel_vine.png" alt="" className="parentselectanswer-vine2" />
+      <div className="parentselectanswer-sunflower-row">
+        <img src="/pixel_sunflower.png" alt="" className="parentselectanswer-sunflower" />
+        <img src="/pixel_sunflower.png" alt="" className="parentselectanswer-sunflower" />
+        <img src="/pixel_sunflower.png" alt="" className="parentselectanswer-sunflower" />
+        <img src="/pixel_sunflower.png" alt="" className="parentselectanswer-sunflower" />
+        <img src="/pixel_sunflower.png" alt="" className="parentselectanswer-sunflower" />
+        <img src="/pixel_sunflower.png" alt="" className="parentselectanswer-sunflower" />
+      </div>
+      <img src="/pixel_cactus.png" alt="" className="parentselectanswer-cactus1" />
+      <img src="/pixel_cactus.png" alt="" className="parentselectanswer-cactus2" />
+
+
+      {/* 回答カード一覧 */}
+      <div className="parentselectanswer-answers">
         {answers.length > 0 ? (
           answers.map((a, idx) => (
             <div
               key={`${a.user_name}-${idx}`}
-              style={selectedIndex === idx ? selectedAnswerStyle : answerStyle}
+              className={`parentselectanswer-answer${selectedIndex === idx ? ' selected' : ''}`}
               onClick={() => setSelectedIndex(idx)}
               title={`${a.user_name} : ${a.input_QA}`}
             >
               <div>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>{`回答${idx + 1}`}</div>
-                <div style={{ fontSize: '0.95rem', opacity: 0.9 }}>{`${a.user_name} : ${a.input_QA}`}</div>
+                <div className="parentselectanswer-answer-label">{`回答${idx + 1}`}</div>
+                <div className="parentselectanswer-answer-text">{`${a.user_name} : ${a.input_QA}`}</div>
               </div>
             </div>
           ))
         ) : (
-          !loading && <div style={answerStyle}>（回答がまだありません）</div>
+          !loading && <div className="parentselectanswer-answer parentselectanswer-answer-empty">（回答がまだありません）</div>
         )}
       </div>
 
       <button
-        style={buttonStyle}
+        className="parentselectanswer-button"
         disabled={selectedIndex === null || deciding}
         onClick={handleDecide}
         title={deciding ? '決定処理中…' : 'この回答で決定する'}
