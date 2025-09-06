@@ -24,6 +24,28 @@
   z-index: 10;
 }
 
+/* 横並びで全体幅を他のTextFieldと揃える */
+.nickname-form {
+  display: flex;
+  width: 100%;
+  background: #7f9be4; /* カード色 */ /* ← これで520px幅に揃う */
+  gap: 8px;
+}
+
+/* 入力欄を残り幅いっぱいに広げる */
+.nickname-input {
+  flex: 1;
+}
+
+/* ボタンは固定幅 */
+.nickname-btn {
+  height: 56px; /* TextFieldと揃える */
+  min-width: 96px; /* 送信ボタンの幅 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .create-room-btn {
   min-width: 120px;
   height: 56px; /* ← MUIのTextFieldと同じ高さ */
@@ -48,6 +70,18 @@
 .topmenu-form-box .MuiOutlinedInput-root {
   background: #f5f5f5; /* ← Formのinput背景に近い薄いグレー */
   border-radius: 6px;
+}
+
+.room-join-btn {
+  display: flex;
+  justify-content: space-between; /* 左右に分散 */
+  padding: 12px 20px; /* 内側の余白を増やす */
+  font-size: 16px; /* 少し大きめに */
+}
+.room-join-btn span {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* 部屋名と人数の間に隙間 */
 }
 
 /* ラベルや文字色は濃い目に戻す */

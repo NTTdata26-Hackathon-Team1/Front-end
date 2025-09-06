@@ -261,9 +261,9 @@ const TopMenu: React.FC = () => {
                 variant="outlined"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                inputProps={{ maxLength: 40, "aria-label": "nickname" }}
                 fullWidth
-                className="nickname-input"
+                className="nickname-input" // ← 横並び用に伸縮させる
+                inputProps={{ maxLength: 40, "aria-label": "nickname" }}
               />
               <Button
                 type="submit"
@@ -352,7 +352,7 @@ const TopMenu: React.FC = () => {
                     className="childanswer-btn btn-outlined room-join-btn"
                   >
                     <span>
-                      room name: <b>{r.room_name}</b>
+                      部屋名: <b>{r.room_name}</b>
                     </span>
                     <span>
                       人数: <b>{r.num_of_nowusers ?? 0}</b>
