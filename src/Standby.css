@@ -72,31 +72,73 @@
 }
 
 .center-box {
-  background: #1fa32b;
-  border-radius: 1vw;
-  box-shadow: 0 0 2vw #0008;
-  width: 30vw;
-  min-width: 200px;
-  max-width: 80vw;
+  background: #7f9be4;
+  border-radius: 1.5vw; /* 角丸も少し大きく */
+  box-shadow: 0 1vw 2.4vw #0006; /* 影を少し強めてリッチに */
+  width: 45vw; /* 30 → 45 (=1.5倍) */
+  min-width: 280px; /* 最小幅も拡大 */
+  max-width: 0vw; /* 余白の余裕を少し広く */
   margin-bottom: 4vw;
-  padding: 1vw 3vw;
+  padding: 1.5vw 4vw; /* 内側余白も1.5倍 */
   text-align: center;
   position: relative;
   z-index: 10;
-  font-size: 1.1vw;
+  font-size: 1.65vw; /* 文字サイズも1.5倍（1.1→1.65） */
+  line-height: 1.6; /* 行間で可読性UP */
 }
+
+/* タイトルを大きく */
+.roominfo-title {
+  font-weight: 900;
+  font-size: 2rem; /* ← 通常の1.5〜2倍 */
+  text-align: center;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+/* メンバー一覧の見出しに余白を追加 */
+.roominfo-sub {
+  margin-top: 20px; /* ← 今より広めにとる */
+  margin-bottom: 8px; /* メンバー一覧との間も適度に空ける */
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+/* メンバー一覧のボックス全体 */
+.roominfo-members {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 各メンバー間も余裕を確保 */
+  margin-bottom: 16px; /* 下に余白を追加してボタンと被らないように */
+  text-align: center;
+}
+
+/* メンバーひとり分のボックス */
+.roominfo-member {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-weight: 600;
+}
+
+.roominfo-empty {
+  opacity: 0.75;
+  font-style: italic;
+}
+
 .standby-btn {
   background: #ff69b4;
   color: #fff;
-  font-size: 1vw;
+  font-size: 1.4vw; /* 1 → 1.4 に（カード比で少し控えめ） */
   border: none;
-  border-radius: 0.7vw;
-  padding: 1vw 4vw;
+  border-radius: 1vw;
+  padding: 1.2vw 5vw; /* 面積も拡大 */
   margin-top: 2vw;
-  box-shadow: 0 0 1vw #0006;
+  box-shadow: 0 0.6vw 1.2vw #0006;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.06s ease;
 }
+
 .standby-btn:disabled {
   background: #aaa;
   cursor: not-allowed;
@@ -111,11 +153,13 @@
   .standby-subtitle {
     font-size: 4vw;
   }
-  .standby-center-box {
-    width: 80vw;
-    height: 40vw;
-    min-width: 180px;
-    min-height: 120px;
+  /* center-box は既存クラス名なので、こちらで上書き */
+  .center-box {
+    width: 88vw;
+    max-width: 92vw;
+    font-size: 4vw; /* モバイル時は読みやすさ優先でゆったり */
+    padding: 4vw 5vw;
+    border-radius: 4vw;
   }
   .standby-user-list {
     font-size: 4vw;

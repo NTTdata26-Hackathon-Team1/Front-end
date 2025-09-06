@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./Standby.css";
 import Title from "./component/title";
+import Button from "./component/button";
 import { supabase } from "./supabaseClient";
 import { useNavigate } from "react-router-dom";
 import DanmakuInput from "./DanmakuInput";
@@ -236,64 +237,59 @@ const Standby: React.FC = () => {
       <Title text="朝までそれ正解" />
 
       {/* 中央の緑枠 */}
-      <div className="center-box">
-        {errMsg && (
-          <div style={{ color: "#ff69b4", marginBottom: 8 }}>{errMsg}</div>
-        )}
-        <div
-          style={{ fontWeight: "bold", fontSize: "1.2rem", marginBottom: 10 }}
-        >
-          現在の部屋情報
+      <div className="center-box roominfo-card">
+        {errMsg && <div className="roominfo-error">{errMsg}</div>}
+
+        {/* 部屋情報タイトル */}
+        <div className="roominfo-title">部屋情報</div>
+
+        <div className="roominfo-row">
+          部屋名: <b>{myRoomName ?? "—"}</b>
         </div>
-        <div>
-          room name: <b>{myRoomName ?? "—"}</b>
+        <div className="roominfo-row">
+          ラウンド数: <b>{myNumOfR ?? "—"}</b>
         </div>
-        <div>
-          round数: <b>{myNumOfR ?? "—"}</b>
+        <div className="roominfo-row">
+          人数: <b>{num_of_nowusers}</b>
         </div>
-        <div>
-          この部屋の人数: <b>{num_of_nowusers}</b>
-        </div>
-        <div style={{ marginTop: 8 }}>この部屋のメンバー:</div>
-        <ul
-          style={{
-            listStyle: "disc",
-            paddingLeft: 24,
-            margin: 0,
-            textAlign: "center",
-          }}
-        >
+
+        <div className="roominfo-sub">メンバー一覧</div>
+        <div className="roominfo-members">
           {roomUsernames && roomUsernames.length > 0 ? (
-            roomUsernames.map((u) => <li key={u}>{u}</li>)
+            roomUsernames.map((u) => (
+              <div key={u} className="roominfo-member">
+                {u}
+              </div>
+            ))
           ) : (
-            <li style={{ listStyle: "none", opacity: 0.7 }}>
-              （まだメンバーがいません）
-            </li>
+            <div className="roominfo-empty">（まだメンバーがいません）</div>
           )}
-        </ul>
-        <button
-          className="standby-btn"
+        </div>
+
+        <Button
+          type="button"
           onClick={handleReadyClick}
           disabled={readyState === "sending" || readyState === "done"}
-          style={{ marginTop: 24 }}
+          className="childanswer-btn standby-ready-btn"
         >
           {readyState === "sending"
             ? "送信中…"
             : readyState === "done"
             ? "送信済み"
             : "準備完了"}
-        </button>
+        </Button>
+
         {readyMsg && (
           <div
-            style={{
-              marginTop: 8,
-              color: readyState === "error" ? "#ff69b4" : "#1fa32b",
-            }}
+            className={`roominfo-msg ${
+              readyState === "error" ? "is-error" : "is-ok"
+            }`}
           >
             {readyMsg}
           </div>
         )}
       </div>
+
       <DanmakuInput fixedBottom />
     </div>
   );
