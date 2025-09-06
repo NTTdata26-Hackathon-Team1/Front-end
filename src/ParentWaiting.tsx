@@ -140,6 +140,52 @@ const ParentWaiting: React.FC = () => {
     }
   };
 
+  // ★ 追加：まずDBから現在ラウンドのお題を取れないか試す
+  async function tryLoadTopicFromDbFirst(tab_id: string) {
+    const { data, error } = await supabase.functions.invoke<{
+      ok: boolean;
+      topic_text?: string;
+    }>("main-api", {
+      body: { method: "get-topic", params: { tab_id } },
+    });
+
+    if (!error && data?.ok && data.topic_text) {
+      setDebugTopic(data.topic_text);
+      setDebugSource("db");
+      try {
+        sessionStorage.setItem("last_topic", data.topic_text);
+        sessionStorage.setItem("last_topic_source", "db");
+      } catch {}
+      return true; // DBから取れた
+    }
+    return false; // 取れなかった
+  }
+
+  // ★ 追加：お題ロック用の関数（Edge Function呼び出し版）
+  async function lockTopicToRound_viaFunction({
+    tab_id,
+    topic_text,
+  }: {
+    tab_id: string;
+    topic_text: string;
+  }) {
+    const { data, error } = await supabase.functions.invoke<{
+      ok: boolean;
+      round_id?: string;
+      alreadyLocked?: boolean;
+      error?: string;
+    }>("main-api", {
+      body: {
+        method: "lock-topic",
+        params: { tab_id, topic_text },
+      },
+    });
+
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.error ?? "lock-topic failed");
+    return data;
+  }
+
   // ★ お題（topic）を navState > sessionStorage の優先度で読み込み
   useEffect(() => {
     if (navState?.topic && navState.topic.length > 0) {
@@ -164,16 +210,27 @@ const ParentWaiting: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ★ tab_id確定 → round取得 → ポーリング開始
+  // ★ tab_id確定 → round取得 → ポーリング開始（置き換え版）
   useEffect(() => {
     cancelledRef.current = false;
     tabIdRef.current = resolveTabId(); // 初回に tab_id を確定
 
-    // 左上ラウンド表示の初期化
-    fetchRound();
+    const tab_id = tabIdRef.current;
 
-    // 初回即ポーリング開始
-    pollOnce();
+    // 左上ラウンド表示の初期化 + ポーリング開始は共通でやる
+    const kickBasics = () => {
+      fetchRound();
+      pollOnce();
+    };
+
+    // まずDB優先で現在お題を試し取得 → だめなら従来フロー続行
+    if (tab_id) {
+      tryLoadTopicFromDbFirst(tab_id)
+        .catch(() => {}) // 失敗は無視
+        .finally(kickBasics);
+    } else {
+      kickBasics();
+    }
 
     return () => {
       cancelledRef.current = true;
@@ -181,6 +238,39 @@ const ParentWaiting: React.FC = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ★ 追加：二重実行防止
+  const lockedOnceRef = useRef(false);
+
+  // ★ debugTopic が決まったら一度だけロック（追記あり）
+  useEffect(() => {
+    (async () => {
+      if (lockedOnceRef.current) return;
+      if (!debugTopic || !debugTopic.trim()) return;
+
+      const tab_id = tabIdRef.current;
+      if (!tab_id) return;
+
+      try {
+        await lockTopicToRound_viaFunction({
+          tab_id,
+          topic_text: debugTopic.trim(),
+        });
+        lockedOnceRef.current = true;
+
+        // ★★ ここから3行を追記：成功したら取得元＝DBに寄せる
+        setDebugSource("db");
+        try {
+          sessionStorage.setItem("last_topic", debugTopic.trim());
+          sessionStorage.setItem("last_topic_source", "db");
+        } catch {}
+        // ★★ ここまで
+      } catch (e: any) {
+        console.error("lock-topic failed:", e?.message ?? e);
+        setErrorMsg(e?.message ?? "お題の確定に失敗しました");
+      }
+    })();
+  }, [debugTopic]);
 
   return (
     <Box
