@@ -159,7 +159,7 @@ function ParentSelectAnswer() {
     <div className="parentselectanswer-bg">
       {/* 左上：ラウンド表示 */}
       <div className="parentselectanswer-round">
-        第ROUND{roundLoading ? '…' : (round ?? '—')}
+        ROUND {roundLoading ? '…' : (round ?? '—')}
       </div>
 
       {/* タイトル */}
@@ -197,8 +197,8 @@ function ParentSelectAnswer() {
               title={`${a.user_name} : ${a.input_QA}`}
             >
               <div>
-                <div className="parentselectanswer-answer-label">{`回答${idx + 1}`}</div>
-                <div className="parentselectanswer-answer-text">{`${a.user_name} : ${a.input_QA}`}</div>
+                <div className="parentselectanswer-answer-label">{`${a.user_name}`}</div>
+                <div className="parentselectanswer-answer-text">{`${a.input_QA}`}</div>
               </div>
             </div>
           ))
