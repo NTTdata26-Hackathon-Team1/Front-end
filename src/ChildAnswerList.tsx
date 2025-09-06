@@ -146,12 +146,24 @@ function ChildAnswerList() {
   return (
     <div className="childanswerlist-bg">
       {/* 左上：ラウンド表示（pixel-artラベル） */}
-      <div className="childanswerlist-round">
-        第 {roundLoading ? '…' : (round ?? '—')} ターン
+      <div className="childanswerlist-round"
+      style={{
+                    textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
+                    fontWeight: 900,
+                    color: "#fcfbfbff",
+                }}
+            >
+        ROUND {roundLoading ? '…' : (round ?? '—')} 
       </div>
 
       {/* タイトル */}
-      <h2 className="childanswerlist-title">回答一覧</h2>
+      <h2 className="childanswerlist-title"
+      style={{
+                    textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
+                    fontWeight: 900,
+                    color: "#fcfbfbff",
+                }}
+            >回答一覧</h2>
 
       {errorMsg && (
         <div className="childanswerlist-error">{errorMsg}</div>
