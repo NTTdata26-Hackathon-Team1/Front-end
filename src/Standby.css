@@ -1,4 +1,3 @@
-
 .standby-bg {
   background: #18194a;
   min-height: 100vh;
@@ -11,11 +10,15 @@
   justify-content: center;
 }
 .standby-title {
-  font-family: 'Pixel', 'Arial', sans-serif;
+  position: absolute; /* 画面基準に配置 */
+  top: 8vh; /* ← 雲と同じ高さあたりに調整 */
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Pixel", "Arial", sans-serif;
   color: #fff;
-  font-size: 8vw;
+  font-size: 6vw;
   text-shadow: 0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4;
-  text-align: center;
+  font-weight: 900;
   z-index: 10;
 }
 
@@ -25,11 +28,35 @@
   min-width: 60px;
   z-index: 1;
 }
-.cloud-left-up {position: absolute;left: 15vw;top: 2vw;width: 15vw;height: 10vw;}
-.cloud-right-up {position: absolute;right: -2vw;top: 10vw;width: 20vw;height: 8vw;transform: scaleX(-1);}
-.tower-img {position: absolute;bottom: 8vw;width: 20vw;min-width: 100px;z-index: 2;}
-.tower-left { left: -5vw;transform: scaleX(-1);  }
-.tower-right { right: -5vw;}
+.cloud-left-up {
+  position: absolute;
+  left: 15vw;
+  top: 2vw;
+  width: 15vw;
+  height: 10vw;
+}
+.cloud-right-up {
+  position: absolute;
+  right: -2vw;
+  top: 10vw;
+  width: 20vw;
+  height: 8vw;
+  transform: scaleX(-1);
+}
+.tower-img {
+  position: absolute;
+  bottom: 8vw;
+  width: 20vw;
+  min-width: 100px;
+  z-index: 2;
+}
+.tower-left {
+  left: -5vw;
+  transform: scaleX(-1);
+}
+.tower-right {
+  right: -5vw;
+}
 .tree-img {
   position: absolute;
   bottom: 8vw;
@@ -37,48 +64,112 @@
   min-width: 50px;
   z-index: 2;
 }
-.tree-left { left: 13vw; }
-.tree-right { right: 13vw; }
+.tree-left {
+  left: 13vw;
+}
+.tree-right {
+  right: 13vw;
+}
 
 .center-box {
-  background: #1fa32b;
-  border-radius: 1vw;
-  box-shadow: 0 0 2vw #0008;
-  width: 30vw;
-  min-width: 200px;
-  max-width: 80vw;
+  background: #7f9be4;
+  border-radius: 1.5vw; /* 角丸も少し大きく */
+  box-shadow: 0 1vw 2.4vw #0006; /* 影を少し強めてリッチに */
+  width: 45vw; /* 30 → 45 (=1.5倍) */
+  min-width: 280px; /* 最小幅も拡大 */
+  max-width: 0vw; /* 余白の余裕を少し広く */
   margin-bottom: 4vw;
-  padding: 1vw 3vw;
+  padding: 1.5vw 4vw; /* 内側余白も1.5倍 */
   text-align: center;
   position: relative;
   z-index: 10;
-  font-size : 1.1vw;
+  font-size: 1.65vw; /* 文字サイズも1.5倍（1.1→1.65） */
+  line-height: 1.6; /* 行間で可読性UP */
 }
+
+/* タイトルを大きく */
+.roominfo-title {
+  font-weight: 900;
+  font-size: 2rem; /* ← 通常の1.5〜2倍 */
+  text-align: center;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+/* メンバー一覧の見出しに余白を追加 */
+.roominfo-sub {
+  margin-top: 20px; /* ← 今より広めにとる */
+  margin-bottom: 8px; /* メンバー一覧との間も適度に空ける */
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+/* メンバー一覧のボックス全体 */
+.roominfo-members {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 各メンバー間も余裕を確保 */
+  margin-bottom: 16px; /* 下に余白を追加してボタンと被らないように */
+  text-align: center;
+}
+
+/* メンバーひとり分のボックス */
+.roominfo-member {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-weight: 600;
+}
+
+.roominfo-empty {
+  opacity: 0.75;
+  font-style: italic;
+}
+
 .standby-btn {
   background: #ff69b4;
   color: #fff;
-  font-size: 1vw;
+  font-size: 1.4vw; /* 1 → 1.4 に（カード比で少し控えめ） */
   border: none;
-  border-radius: 0.7vw;
-  padding: 1vw 4vw;
+  border-radius: 1vw;
+  padding: 1.2vw 5vw; /* 面積も拡大 */
   margin-top: 2vw;
-  box-shadow: 0 0 1vw #0006;
+  box-shadow: 0 0.6vw 1.2vw #0006;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.06s ease;
 }
+
 .standby-btn:disabled {
   background: #aaa;
   cursor: not-allowed;
 }
 
-
 /* レスポンシブ調整 */
 @media (max-width: 500px) {
-    .standby-title { font-size: 10vw; margin-top: 10vw; }
-    .standby-subtitle { font-size: 4vw; }
-    .standby-center-box { width: 80vw; height: 40vw; min-width: 180px; min-height: 120px; }
-    .standby-user-list { font-size: 4vw; }
-    .standby-start-btn { font-size: 5vw; padding: 2vw 10vw; border-radius: 4vw; }
-    .standby-ground { height: 10vw; }
+  .standby-title {
+    font-size: 10vw;
+    margin-top: 10vw;
+  }
+  .standby-subtitle {
+    font-size: 4vw;
+  }
+  /* center-box は既存クラス名なので、こちらで上書き */
+  .center-box {
+    width: 88vw;
+    max-width: 92vw;
+    font-size: 4vw; /* モバイル時は読みやすさ優先でゆったり */
+    padding: 4vw 5vw;
+    border-radius: 4vw;
+  }
+  .standby-user-list {
+    font-size: 4vw;
+  }
+  .standby-start-btn {
+    font-size: 5vw;
+    padding: 2vw 10vw;
+    border-radius: 4vw;
+  }
+  .standby-ground {
+    height: 10vw;
+  }
 }
-
