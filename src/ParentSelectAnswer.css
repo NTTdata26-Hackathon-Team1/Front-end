@@ -11,27 +11,42 @@
   justify-content: flex-start;
 }
 .parentselectanswer-round {
-    position: absolute;
-    top: 1vw;
-    left: 10vw;
-    transform: translateX(-50%);
-    font-size: 2vw;
-    color: #fffbe6;
-    font-weight: bold;
-    text-shadow: 0.3vw 0.3vw 0 #ff69b4;
-    z-index: 10;
-    letter-spacing: 0.2em;
+  position: absolute;
+  top: 1vw;
+  left: 10vw;
+  transform: translateX(-50%);
+  font-size: 2vw;
+  color: #fffbe6;
+  font-weight: bold;
+  text-shadow: 0.3vw 0.3vw 0 #ff69b4;
+  z-index: 120;
+  letter-spacing: 0.2em;
 }
 
 .parentselectanswer-title {
+  position: absolute;
+  top: 9vw;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 3vw;
-  margin-bottom: 32px;
-  color: #ffffff;
-  border-radius: 16px;
-  display: inline-block;
-  padding: 12px 32px;
-  text-shadow: 0 0.3vw 0 #ff69b4, 0 0.6vw 0 #ff69b4;
-  z-index: 10;
+  color: #fcfbfbff;
+  font-weight: 700;
+  text-shadow: 0 2px 8px #f52ba7ff, 0 1px 0 #f645bbff;
+  z-index: 120;
+  text-align: center;
+}
+.parentselectanswer-topic {
+  position: absolute;
+  top: 5vw;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 4vw;
+  color: #fcfbfbff;
+  font-weight: 700;
+  text-shadow: 0 2px 12px #f52ba7ff, 0 1px 0 #f645bbff;
+  margin-bottom: 1vw;
+  z-index: 120;
+  text-align: center;
 }
 .parentselectanswer-error {
   color: crimson;
@@ -45,13 +60,18 @@
 }
 
 .parentselectanswer-answers {
+  position: absolute;
+  top: 22vw;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 120;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: stretch;
   gap: 2vw 2vw;
   margin-bottom: 2vw;
-  width: 100vw;
   max-width: 100vw;
   box-sizing: border-box;
   padding: 0 2vw;
@@ -120,6 +140,14 @@
   background: #eee;
   color: #aaa;
   cursor: not-allowed;
+}
+.parentselectanswer-button-row {
+  position: absolute;
+  top: 40vw;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  text-align: center;
 }
 
 /* イラスト配置例 */
