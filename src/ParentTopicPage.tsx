@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Typography, TextField, Button, Box, Chip, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
+import DanmakuInput from "./DanmakuInput";
+import "./ParentTopicPage.css";
 
 // sessionStorage から引き継ぎ
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
@@ -15,10 +16,16 @@ type AiListResp = { ok: boolean; list?: string[]; submitted?: string; error?: st
 const MAX_TOPIC_CHARS = 16;
 const DEFAULT_TIMEOUT_SEC = 20;
 
-// フォールバック用の簡易お題（AI取得が失敗した時の最終手段）
-const FALLBACK_TOPICS = ["朝に強くなる方法", "最近笑ったこと", "最強のおにぎり具", "休日の最適解", "子供の頃の夢"];
+// フォールバック（必ず「から始まる」「？」形式にしておく）
+const FALLBACK_TOPICS = [
+  "あから始まる可愛いものは？",
+  "しから始まる怖いものは？",
+  "のから始まるうるさいものは？",
+  "たから始まる美味しいものは？",
+  "もから始まる面白いものは？",
+];
 
-// ---- 追加: 候補の検証関数（制約に沿っているかを確認）----
+// ---- 候補の検証関数（制約に沿っているかを確認）----
 const isValidTopic = (s: string, maxLen = MAX_TOPIC_CHARS) => {
   const t = (s ?? "").trim();
   if (!t) return false;
@@ -40,32 +47,30 @@ const ParentTopicPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  // 20秒カウントダウンして自動遷移（※タイムアウト処理を差し替え）
+  // 20秒カウントダウンして自動確定
   const [secondsLeft, setSecondsLeft] = useState<number>(DEFAULT_TIMEOUT_SEC);
-
-  // タイムアウト時の多重実行防止
   const timedOutRef = useRef(false);
 
-  // ===== ここから AI 候補 UI 追加 =====
+  // ===== AI 候補 UI =====
   const [aiLoading, setAiLoading] = useState(false);
   const [aiList, setAiList] = useState<string[]>([]);
   const [aiErr, setAiErr] = useState<string | null>(null);
-
-  // 表示フラグ：ボタンを押すまで候補は見せない
+  // ボタンを押すまで候補は見せない
   const [aiVisible, setAiVisible] = useState(false);
-  // ===== AI 候補 UI ここまで =====
+  // =====================
 
-  // ページ起動時：time_management を呼ぶ、バックエンドでタイマー管理
+  // 起動時：バックエンドタイマー ping（任意）
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.functions.invoke("time_management", {
-        body: { action: "ping" },
-      });
-      console.log("ping:", { data, error });
+      try {
+        await supabase.functions.invoke("time_management", { body: { action: "ping" } });
+      } catch {
+        // ログだけ
+      }
     })();
   }, []);
 
-  // ページ起動時：main-api の get-round を呼んで round を取得して表示
+  // 起動時：round を取得
   useEffect(() => {
     const fetchRound = async () => {
       const tab_id = getTabId();
@@ -97,8 +102,8 @@ const ParentTopicPage: React.FC = () => {
     fetchRound();
   }, []);
 
-  // ====== AI候補の取得ロジック（手動 + サイレント事前取得） ======
-  // 戻り値としても候補配列を返す（タイムアウト時は戻り値を即使用）
+  // ====== AI候補の取得（手動 + サイレント事前取得） ======
+  // 候補配列を返すので、タイムアウト時にも即利用できる
   const fetchAiTopicsInternal = async (opts?: { silent?: boolean }): Promise<string[]> => {
     const tab_id = getTabId();
     if (!tab_id) {
@@ -136,20 +141,20 @@ const ParentTopicPage: React.FC = () => {
     }
   };
 
-  // 手動取得：このときだけ画面に表示
+  // 手動取得：このときだけ候補を表示
   const fetchAiTopics = async () => {
-    setAiVisible(true);     // ← ここで候補を表示する
+    setAiVisible(true);
     await fetchAiTopicsInternal();
   };
 
-  // 起動直後に「サイレント事前取得」しておく（タイムアウト時に即使える）
+  // サイレント事前取得（タイムアウトで即使える）
   useEffect(() => {
     fetchAiTopicsInternal({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 候補を入力欄に反映
-  const pickToInput = (text: string) => setTopic(text);
+  // 候補クリックで入力欄に反映
+  const pickToInput = (text: string) => setTopic(text.slice(0, MAX_TOPIC_CHARS));
 
   // 共通送信関数
   const submitTopic = async (txt: string) => {
@@ -162,11 +167,7 @@ const ParentTopicPage: React.FC = () => {
     setErr(null);
     try {
       const { data, error } = await supabase.functions.invoke<SubmitTopicResp>("main-api", {
-        body: {
-          action: "submit-topic",
-          txt,
-          tab_id,
-        },
+        body: { action: "submit-topic", txt, tab_id },
       });
       if (error) {
         setErr(error.message ?? "送信に失敗しました");
@@ -186,7 +187,7 @@ const ParentTopicPage: React.FC = () => {
     }
   };
 
-  // サーバーに直接「この候補で送信」させる版（任意）
+  // サーバーに直接「この候補で送信」させる（必要なら使用）
   const submitAiTopic = async (index: number) => {
     const tab_id = getTabId();
     if (!tab_id) {
@@ -195,7 +196,6 @@ const ParentTopicPage: React.FC = () => {
     }
     setSending(true);
     setErr(null);
-
     try {
       const { data, error } = await supabase.functions.invoke<AiListResp>("main-api", {
         body: {
@@ -219,7 +219,7 @@ const ParentTopicPage: React.FC = () => {
     }
   };
 
-  // 手入力の送信
+  // 手入力送信
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const txt = topic.trim();
@@ -227,11 +227,10 @@ const ParentTopicPage: React.FC = () => {
     await submitTopic(txt);
   };
 
-  // タイムアウト時の処理：
+  // タイムアウト時の処理
   const handleTimeout = async () => {
     if (timedOutRef.current) return;
     timedOutRef.current = true;
-
     if (sending) return;
 
     const typed = topic.trim();
@@ -241,31 +240,27 @@ const ParentTopicPage: React.FC = () => {
     }
 
     // 空欄：AI 候補から選ぶ（画面には出さない）
-    // まず画面の aiList から有効なもの
     let candidate = aiList.find(s => isValidTopic(s)) ?? "";
 
-    // それでも無ければサイレント取得→戻り値から即選ぶ
     if (!candidate) {
       const fetched = await fetchAiTopicsInternal({ silent: true });
       candidate = fetched.find(s => isValidTopic(s)) ?? "";
     }
 
-    // なお無ければフォールバック
     if (!candidate) {
       candidate =
-        FALLBACK_TOPICS
-          .map(s => s.slice(0, MAX_TOPIC_CHARS))
-          .find(s => isValidTopic(s)) || "あから始まる楽しいものは？".slice(0, MAX_TOPIC_CHARS);
+        FALLBACK_TOPICS.find(s => isValidTopic(s)) ||
+        "あから始まる楽しいものは？";
     }
 
     candidate = candidate.slice(0, MAX_TOPIC_CHARS);
     await submitTopic(candidate);
   };
 
-  // カウントダウン：0 になったら handleTimeout を発火
+  // カウントダウン：0 で handleTimeout
   useEffect(() => {
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
+      setSecondsLeft(prev => {
         if (prev <= 1) {
           clearInterval(interval);
           handleTimeout();
@@ -274,103 +269,144 @@ const ParentTopicPage: React.FC = () => {
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      mt={8}
-      sx={{ position: "relative", width: "100%" }}
-    >
-      {/* 画面左上表示：ラウンド */}
-      <Box sx={{ position: "absolute", top: 8, left: 12 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-          第 {roundLoading ? "…" : round ?? "—"} ターン
-        </Typography>
-      </Box>
+    <div className="parenttopick-bg">
+      {/* 背景装飾（master スタイル維持） */}
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud right2" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left2" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud right3" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left3" alt="cloud" />
+      <img src="/pixel_girl.png" className="parenttopick-character" alt="character" />
+      <img src="/pixel_sunflower.png" className="parenttopick-sunflower" alt="sunflower" />
+      <div className="parenttopick-fire-row">
+        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
+        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
+        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
+      </div>
+      <img src="/pixel_tree_bonsai.png" className="parenttopick-tree-bonsai" alt="tree-bonsai" />
 
-      <Typography variant="h4" component="h1" gutterBottom>
-        あなたは親です
-      </Typography>
-      <Typography variant="subtitle1" gutterBottom>
-        お題を入力してください（{MAX_TOPIC_CHARS}文字以内）
-      </Typography>
+      {/* ラウンド表示 */}
+      <div className="parenttopick-round">
+        ROUND {roundLoading ? "…" : round ?? "—"}
+      </div>
 
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        display="flex"
-        alignItems="center"
-        gap={2}
-        mt={4}
-      >
-        <TextField
-          label="お題入力欄"
-          variant="outlined"
+      {/* タイトル・サブタイトル */}
+      <div className="parenttopick-title">あなたは親です</div>
+      <div className="parenttopick-subtitle">お題を入力してください</div>
+
+      {/* 入力フォーム */}
+      <form className="parenttopick-form" onSubmit={handleSubmit}>
+        <input
+          className="parenttopick-input"
+          type="text"
+          placeholder="お題入力欄"
           value={topic}
           onChange={(e) => setTopic(e.target.value.slice(0, MAX_TOPIC_CHARS))}
-          helperText={`${topic.length}/${MAX_TOPIC_CHARS}`}
+          disabled={sending}
         />
-        <Button
+        <button
+          className="parenttopick-btn"
           type="submit"
-          variant="contained"
           disabled={!topic.trim() || sending}
-          color="primary"
         >
           {sending ? "送信中…" : "送信"}
-        </Button>
-      </Box>
+        </button>
+      </form>
+
+      {/* 文字数ヘルパー */}
+      <div className="parenttopick-helper">{topic.length}/{MAX_TOPIC_CHARS}</div>
 
       {/* AI候補ブロック */}
-      <Box sx={{ mt: 3, width: "min(720px, 92%)" }}>
-        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
-          <Typography variant="subtitle1">AI候補</Typography>
-          <Button variant="outlined" onClick={fetchAiTopics} disabled={aiLoading}>
+      <div className="parenttopick-ai">
+        <div className="parenttopick-ai-head">
+          <span className="parenttopick-ai-title">AI候補</span>
+          <button
+            type="button"
+            className="parenttopick-btn secondary"
+            onClick={fetchAiTopics}
+            disabled={aiLoading}
+          >
             {aiLoading ? "取得中…" : "AI候補を取得"}
-          </Button>
-        </Stack>
+          </button>
+        </div>
 
-        {/* ★ 表示フラグが true のときだけ見せる */}
+        {/* ボタンを押したら表示 */}
         {aiVisible && (
           <>
-            {aiErr && (
-              <Typography color="error" sx={{ mb: 1 }}>
-                {aiErr}
-              </Typography>
-            )}
+            {!!aiErr && <div className="parenttopick-ai-error">{aiErr}</div>}
 
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <div className="parenttopick-ai-list">
               {aiList.map((t, i) => (
-                <Stack key={i} direction="row" spacing={1} sx={{ mb: 1 }}>
-                  <Chip label={t} onClick={() => pickToInput(t)} />
-                  {/* もし「この候補で送信」も見せたいなら↓を有効化
-                  <Button size="small" variant="contained" onClick={() => submitAiTopic(i)} disabled={sending}>
+                <div key={i} className="parenttopick-ai-item">
+                  <button
+                    type="button"
+                    className="parenttopick-chip"
+                    onClick={() => pickToInput(t)}
+                    title="クリックで入力欄に反映"
+                  >
+                    {t}
+                  </button>
+
+                  {/* 即送信したい場合は下のボタンも表示する */}
+                  {/*
+                  <button
+                    type="button"
+                    className="parenttopick-btn tiny"
+                    onClick={() => submitAiTopic(i)}
+                    disabled={sending}
+                  >
                     この候補で送信
-                  </Button>
+                  </button>
                   */}
-                </Stack>
+                </div>
               ))}
-            </Stack>
+              {aiList.length === 0 && !aiErr && (
+                <div className="parenttopick-ai-hint">候補がまだありません。</div>
+              )}
+            </div>
           </>
         )}
-      </Box>
+      </div>
 
-      {/* ← ここで残り時間を表示 */}
-      <Typography variant="subtitle1" sx={{ mt: 2 }}>
+      {/* 残り時間（右上固定） */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '1vw',
+          right: '2vw',
+          color: '#fff',
+          fontWeight: 'bold',
+          fontSize: '3vw',
+          textShadow: '0.2vw 0.2vw 0 #ff69b4',
+          zIndex: 40,
+        }}
+        aria-live="polite"
+      >
         残り時間: {secondsLeft} 秒
-      </Typography>
+      </div>
 
+      {/* エラー表示 */}
       {err && (
-        <Typography color="error" sx={{ mt: 2 }}>
+        <div
+          style={{
+            color: '#ff3333',
+            marginTop: '1vw',
+            fontWeight: 'bold',
+            fontSize: '1.2vw',
+            textShadow: '0.1vw 0.1vw 0 #fff',
+          }}
+        >
           {err}
-        </Typography>
+        </div>
       )}
-    </Box>
+
+      <DanmakuInput fixedBottom />
+    </div>
   );
 };
 
