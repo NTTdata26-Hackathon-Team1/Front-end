@@ -179,7 +179,7 @@ function ChildAnswerList() {
       {/* 左上：ラウンド表示（pixel-artラベル） */}
       <Round round={round} loading={roundLoading} />
       {/* タイトル（お題 & 回答一覧） */}
-      <div style={{ position: 'absolute', top: '5vw', left: '50%', transform: 'translateX(-50%)', zIndex: 10, textAlign: 'center' }}>
+      <div style={{ position: 'absolute', top: '5vw', left: '50%', transform: 'translateX(-50%)', zIndex: 120, textAlign: 'center' }}>
         <div style={{ fontSize: '4vw', fontWeight: 700, color: '#fcfbfbff', textShadow: '0 2px 12px #f52ba7ff, 0 1px 0 #f645bbff', marginBottom: '1vw' }}>
           {loadingTopic ? 'お題を取得中…' : topic ? `「${topic}」` : 'お題未設定'}
         </div>
@@ -188,12 +188,12 @@ function ChildAnswerList() {
         </div>
       </div>
       {/* タイトルとカードの間隔をさらに狭く（top: 9vw, marginTop: 1vw） */}
-      <div style={{ position: 'absolute', top: '4vw', left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
+      <div style={{ position: 'absolute', top: '4vw', left: '50%', transform: 'translateX(-50%)', width: '100%', zIndex: 120 }}>
         {errorMsg && (
           <div className="childanswerlist-error">{errorMsg}</div>
         )}
         {/* 回答カード一覧 */}
-        <div className="childanswerlist-answers" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2vw 2vw', maxWidth: '70vw', marginTop: '1vw' }}>
+        <div className="childanswerlist-answers">
           {answers.length > 0 ? (
             answers.map((a, idx) => (
               <Card
