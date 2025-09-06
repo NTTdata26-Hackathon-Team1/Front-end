@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import "./ChildAnswer.css";
@@ -18,11 +18,19 @@ const TIMEOUT_MS = 2 * 60 * 1000; // 2分（3分にする場合は 3 * 60 * 1000
 // sessionStorage から取得（TopMenu で保存済み想定）
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
 
+type GetRoundResp = { ok: boolean; round?: number; error?: string };
+type GetTopicResp = { ok: boolean; topic?: string | null; error?: string };
+type SubmitAnswerResp = { ok: boolean; row?: any; updated?: boolean; error?: string };
+type AiListResp = { ok: boolean; list?: string[]; submitted?: string; error?: string };
+
+const MAX_ANSWER_CHARS = 12;
+
 const ChildAnswer: React.FC = () => {
   // ★ 追加: 二重送信防止用
-  const sentRef = React.useRef(false);
+  const sentRef = useRef(false);
   // ★ 残り時間(ms)の状態
-  const [remainingMs, setRemainingMs] = React.useState(TIMEOUT_MS);
+  const [remainingMs, setRemainingMs] = useState(TIMEOUT_MS);
+
   const [topic, setTopic] = useState<string | null>(null); // 取得したお題
   const [answer, setAnswer] = useState("");
   const [sending, setSending] = useState(false);
@@ -35,6 +43,11 @@ const ChildAnswer: React.FC = () => {
   const [round, setRound] = useState<number | null>(null);
   const [roundLoading, setRoundLoading] = useState<boolean>(false);
 
+  // AI候補
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiList, setAiList] = useState<string[]>([]);
+  const [aiErr, setAiErr] = useState<string | null>(null);
+
   const navigate = useNavigate();
 
   // 起動時にお題＆ラウンドを取得（main-api）
@@ -43,9 +56,7 @@ const ChildAnswer: React.FC = () => {
     const tab_id = getTabId();
 
     if (!tab_id) {
-      setErrorMsg(
-        "tab_id が見つかりません（前画面での保存を確認してください）"
-      );
+      setErrorMsg("tab_id が見つかりません（前画面での保存を確認してください）");
       setLoadingTopic(false);
       setRoundLoading(false);
       return () => {
@@ -57,12 +68,8 @@ const ChildAnswer: React.FC = () => {
     (async () => {
       setRoundLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke<{
-          ok: boolean;
-          round?: number;
-          error?: string;
-        }>("main-api", {
-          body: { action: "get-round", params: { tab_id } },
+        const { data, error } = await supabase.functions.invoke<GetRoundResp>("main-api", {
+          body: { action: "get-round", tab_id }, // トップレベルで送る
         });
         if (cancelled) return;
 
@@ -75,9 +82,7 @@ const ChildAnswer: React.FC = () => {
         }
       } catch (e: any) {
         if (!cancelled)
-          setErrorMsg(
-            e?.message ?? "ラウンド情報の取得に失敗しました（unknown error）"
-          );
+          setErrorMsg(e?.message ?? "ラウンド情報の取得に失敗しました（unknown error）");
       } finally {
         if (!cancelled) setRoundLoading(false);
       }
@@ -87,12 +92,8 @@ const ChildAnswer: React.FC = () => {
     (async () => {
       setLoadingTopic(true);
       try {
-        const { data, error } = await supabase.functions.invoke<{
-          ok: boolean;
-          topic?: string | null;
-          error?: string;
-        }>("main-api", {
-          body: { action: "get-current-topic", params: { tab_id } },
+        const { data, error } = await supabase.functions.invoke<GetTopicResp>("main-api", {
+          body: { action: "get-current-topic", tab_id }, // こちらもトップレベルで送る
         });
         if (cancelled) return;
 
@@ -102,16 +103,12 @@ const ChildAnswer: React.FC = () => {
           setErrorMsg(data?.error ?? "お題の取得に失敗しました");
         } else {
           setTopic(
-            typeof data.topic === "string" && data.topic.length > 0
-              ? data.topic
-              : null
+            typeof data.topic === "string" && data.topic.length > 0 ? data.topic : null
           );
         }
       } catch (e: any) {
         if (!cancelled)
-          setErrorMsg(
-            e?.message ?? "お題の取得に失敗しました（unknown error）"
-          );
+          setErrorMsg(e?.message ?? "お題の取得に失敗しました（unknown error）");
       } finally {
         if (!cancelled) setLoadingTopic(false);
       }
@@ -122,16 +119,14 @@ const ChildAnswer: React.FC = () => {
     };
   }, []);
 
-  // ★ 変更: タイムアウト時フラグ isTimeout を追加
+  // コア送信処理（isTimeout=true でタイムアウト由来送信）
   const submitCore = async (txt: string, isTimeout = false) => {
     if (sentRef.current) return; // 二重送信防止
     sentRef.current = true;
 
     const tab_id = getTabId();
     if (!tab_id) {
-      setErrorMsg(
-        "tab_id が見つかりません（前画面での保存を確認してください）"
-      );
+      setErrorMsg("tab_id が見つかりません（前画面での保存を確認してください）");
       sentRef.current = false;
       return;
     }
@@ -140,20 +135,13 @@ const ChildAnswer: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke<{
-        ok: boolean;
-        row?: any;
-        updated?: boolean;
-        error?: string;
-      }>("main-api", {
+      const { data, error } = await supabase.functions.invoke<SubmitAnswerResp>("main-api", {
         body: {
           action: "submit-answer",
-          params: {
-            tab_id,
-            txt, // 空の可能性あり（タイムアウト時）
-            // ★ 追加: タイムアウト起因なら cause を渡す
-            ...(isTimeout ? { cause: "timeout" } : {}),
-          },
+          tab_id,
+          txt, // 空の可能性あり（タイムアウト時）
+          // ★ 追加: タイムアウト起因なら cause を渡す（空回答許容のため）
+          ...(isTimeout ? { cause: "timeout" } : {}),
         },
       });
 
@@ -174,6 +162,7 @@ const ChildAnswer: React.FC = () => {
     }
   };
 
+  // 送信ボタン
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = answer.trim();
@@ -181,22 +170,17 @@ const ChildAnswer: React.FC = () => {
     await submitCore(trimmed);
   };
 
-  // ★ 追加: ページ表示から TIMEOUT_MS 経過で、入力途中でもその時点の内容で送信
+  // ★ ページ表示から TIMEOUT_MS 経過で、自動送信（空なら「(タイムアップ)」）
   useEffect(() => {
-    // tab_id がないなら自動送信はしない
     const tab_id = getTabId();
     if (!tab_id) return;
 
     const timer = setTimeout(() => {
-      // すでに送信済みなら何もしない
-      if (sentRef.current) return;
-
-      // その時点の入力内容を送る（空なら空で送る）
+      if (sentRef.current) return; // すでに送信済みなら何もしない
       submitCore(answer.trim() || "(タイムアップ)", true);
     }, TIMEOUT_MS);
 
     return () => clearTimeout(timer);
-    // ★ ページ表示起点のカウントにしたいので依存配列は空のまま
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -214,8 +198,41 @@ const ChildAnswer: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(iv);
-    // 依存配列は空：ページ表示から固定のカウントにする
   }, []);
+
+  // === AI候補: 取得 ===
+  const fetchAiAnswers = async () => {
+    const tab_id = getTabId();
+    if (!tab_id) {
+      setAiErr("tab_id が見つかりません（前画面での保存を確認してください）");
+      return;
+    }
+    setAiLoading(true);
+    setAiErr(null);
+    setAiList([]);
+    try {
+      const { data, error } = await supabase.functions.invoke<AiListResp>("main-api", {
+        body: {
+          action: "assist-answer-gemini-list",
+          tab_id,
+          count: 5,
+          maxChars: MAX_ANSWER_CHARS,
+        },
+      });
+      if (error) throw new Error(error.message ?? "AI候補の取得に失敗");
+      if (!data?.ok) throw new Error(data?.error ?? "AI候補の取得に失敗");
+
+      setAiList((data.list ?? []).map((s) => String(s).slice(0, MAX_ANSWER_CHARS)));
+    } catch (e: any) {
+      setAiErr(e?.message ?? "AI候補の取得に失敗");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // === AI候補: 入力欄に反映 ===
+  const pickToInput = (text: string) =>
+    setAnswer(String(text).slice(0, MAX_ANSWER_CHARS));
 
   return (
     <div className="childanswer-bg">
@@ -240,26 +257,27 @@ const ChildAnswer: React.FC = () => {
       <div
         className="childanswer-round"
         style={{
-          textShadow: '0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff',
+          textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
           fontWeight: 900,
-          color: '#fcfbfbff',
+          color: "#fcfbfbff",
         }}
       >
-        ROUND {roundLoading ? '…' : round ?? '—'}
+        ROUND {roundLoading ? "…" : round ?? "—"}
       </div>
 
       {/* タイトル（中央大きく）＋お題 */}
       <div
         className="childanswer-title"
         style={{
-          textShadow: '0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff',
+          textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
           fontWeight: 900,
-          color: '#fcfbfbff',
+          color: "#fcfbfbff",
         }}
       >
-        {loadingTopic ? 'お題を取得中…' : topic ? <>お題は 「{topic}」 です</> : 'お題は未設定'}
+        {loadingTopic ? "お題を取得中…" : topic ? <>お題は 「{topic}」 です</> : "お題は未設定"}
       </div>
 
+      {/* 右上：カウントダウン */}
       <div
         className="childanswer-countdown"
         aria-live="polite"
@@ -285,7 +303,7 @@ const ChildAnswer: React.FC = () => {
           type="text"
           placeholder="解答を入力してください"
           value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
+          onChange={(e) => setAnswer(e.target.value.slice(0, MAX_ANSWER_CHARS))}
         />
         <button
           className="childanswer-btn"
@@ -295,6 +313,33 @@ const ChildAnswer: React.FC = () => {
           {sending ? "送信中…" : "送信"}
         </button>
       </form>
+
+      {/* AI候補UI */}
+      <div style={{ marginTop: 12, textAlign: "center" }}>
+        <button className="childanswer-btn" onClick={fetchAiAnswers} disabled={aiLoading}>
+          {aiLoading ? "候補取得中…" : "AI候補を取得"}
+        </button>
+      </div>
+
+      {aiErr && <div className="childanswer-error">{aiErr}</div>}
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          justifyContent: "center",
+          marginTop: 8,
+        }}
+      >
+        {aiList.map((a, i) => (
+          <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <button className="childanswer-chip" onClick={() => pickToInput(a)}>
+              {a}
+            </button>
+          </div>
+        ))}
+      </div>
 
       {errorMsg && <div className="childanswer-error">{errorMsg}</div>}
       <DanmakuInput fixedBottom />
