@@ -1,11 +1,14 @@
 .parenttopick-round {
-  font-size: 2vw;
-  font-weight: bold;
-  display: block;
-  margin-top: 1.5vw;
-  color: #fffbe6;
-  text-shadow: none !important;
-z-index: 10;
+    position: absolute;
+    top: 1vw;
+    left: 10vw;
+    transform: translateX(-50%);
+    font-size: 2vw;
+    color: #fffbe6;
+    font-weight: bold;
+    text-shadow: 0.3vw 0.3vw 0 #ff69b4;
+    z-index: 10;
+    letter-spacing: 0.2em;
 }
 .parenttopick-bg {
   width: 100vw;
@@ -31,14 +34,13 @@ z-index: 10;
 
 .parenttopick-subtitle {
   color: #fff;
-  font-size: 1.2vw;
-  text-shadow: 0.3vw 0.3vw 0 #ff69b4;
-  margin-bottom: 3vw;
-  text-align: right;
-  letter-spacing: 0.2em;
-  position: absolute;
-  top: 2%;
-  right: 1vw;
+  font-size: 5vw;
+  font-weight: bold;
+  text-shadow: 0.5vw 0.5vw 0 #ff69b4, 1vw 1vw 0 #181848;
+  margin-top: 2vw;
+  margin-bottom: 2vw;
+  text-align: center;
+  z-index: 10;
 }
 
 .parenttopick-form {
@@ -103,13 +105,3 @@ z-index: 10;
 /* 木盆栽 */
 .parenttopick-tree-bonsai {position: absolute;width: 20vw;height: 20vw;right: 0vw;bottom: 8vw;z-index: 2;}
 
-
-.parenttopick-ground {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100vw;
-  height: 6vw;
-  background: #a0522d;
-  z-index: 1;
-}
