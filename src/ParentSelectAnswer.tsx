@@ -191,18 +191,32 @@ function ParentSelectAnswer() {
   return (
     <div className="parentselectanswer-bg">
       {/* 左上：ラウンド表示（ChildAnswerListと同じ配置・サイズ） */}
-      <div style={{ position: 'absolute', top: '1vw', left: '10vw', transform: 'translateX(-50%)', zIndex: 120 }}>
+      <div style={{ position: 'absolute', top: '1vw', left: '5vw', transform: 'translateX(-50%)', zIndex: 120 }}>
         <Round round={round} loading={roundLoading} />
       </div>
 
       {/* タイトル・お題（ChildAnswerListと同じ表示方法） */}
       <div style={{ position: 'absolute', top: '5vw', left: '50%', transform: 'translateX(-50%)', zIndex: 120, textAlign: 'center', width: '100%' }}>
-        <div style={{ fontSize: '4vw', fontWeight: 700, color: '#fcfbfbff', textShadow: '0 2px 12px #f52ba7ff, 0 1px 0 #f645bbff', marginBottom: '1vw' }}>
-          {loadingTopic ? 'お題を取得中…' : topic ? `「${topic}」` : 'お題未設定'}
-        </div>
-        <div style={{ fontSize: '3vw', fontWeight: 700, color: '#fcfbfbff', textShadow: '0 2px 8px #f52ba7ff, 0 1px 0 #f645bbff' }}>
-          ベストな回答を選択してください
-        </div>
+        <Title
+          text={loadingTopic ? 'お題を取得中…' : topic ? `「${topic}」` : 'お題未設定'}
+          style={{
+            fontSize: '4vw',
+            fontWeight: 700,
+            color: '#fcfbfbff',
+            marginBottom: '1vw',
+            textAlign: 'center',
+          }}
+        />
+        <Title
+          text="ベストな回答を選択してください"
+          style={{
+            fontSize: '3vw',
+            fontWeight: 700,
+            color: '#fcfbfbff',
+            marginBottom: 0,
+            textAlign: 'center',
+          }}
+        />
       </div>
 
       {loading && <div className="parentselectanswer-loading">読み込み中…</div>}
