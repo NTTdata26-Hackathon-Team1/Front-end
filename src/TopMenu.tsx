@@ -265,13 +265,6 @@ const TopMenu: React.FC = () => {
                 className="nickname-input" // ← 横並び用に伸縮させる
                 inputProps={{ maxLength: 40, "aria-label": "nickname" }}
               />
-              <Button
-                type="submit"
-                disabled={!name.trim() || submitting}
-                className="childanswer-btn nickname-btn"
-              >
-                送信
-              </Button>
             </form>
           </Box>
 

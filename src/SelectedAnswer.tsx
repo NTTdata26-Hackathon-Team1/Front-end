@@ -35,6 +35,7 @@ const containerStyle: React.CSSProperties = {
   textAlign: 'center',
   marginTop: '20px',
   position: 'relative', // 左上バッジ用
+  zIndex: 200
 };
 
 const titleStyle: React.CSSProperties = {
@@ -62,6 +63,7 @@ const answerCardStyle: React.CSSProperties = {
   whiteSpace: 'pre-wrap',
   textAlign: 'center',
   lineHeight: 1.5,
+  zIndex: 100
 };
 
 const nameListCardStyle: React.CSSProperties = {
@@ -77,6 +79,7 @@ const nameListCardStyle: React.CSSProperties = {
   fontSize: '1.2rem',
   margin: '0 auto 30px auto',
   padding: '20px',
+  zIndex: 100
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -293,18 +296,21 @@ function SelectedAnswer() {
         <Title
           text={best?.input_QA ? `「${best.input_QA}」` : 'お題未設定'}
           style={{
-            fontSize: '2.2rem',
+            fontSize: '2.5rem',
             marginBottom: '1vw', // 余白を広げる
             color: '#fcfbfbff',
             textAlign: 'center',
             fontWeight: 700,
+            marginTop: '-27vw',
+            minWidth: '75vw',
           }}
         />
         <Title
           text="ベストな回答に選ばれたのは"
           style={{
             ...titleStyle,
-            marginTop: '1vw', // 余白を追加
+            marginTop: '-20vw',
+            minWidth: '75vw',
           }}
         />
 
@@ -333,8 +339,9 @@ function SelectedAnswer() {
           textAlign: 'center',
           color: '#fff',
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          zIndex: 200
         }}>
-          <div style={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#fff', marginBottom: '1vw' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#fff', marginBottom: '1vw'}}>
             他の人の回答
           </div>
           {others.length > 0 ? (
@@ -363,20 +370,24 @@ function SelectedAnswer() {
           <div style={{ color: 'crimson', marginBottom: 16 }}>{errorMsg}</div>
         )}
 
-        <div style={{
-          position: 'fixed',
-          right: '4vw',
-          bottom: '9vw',
-          zIndex: 200,
-        }}>
-          <Button
-            type="button"
-            disabled={nexting || waitingRoute}
-            onClick={handleNext}
-          >
-            {nexting ? '送信中…' : waitingRoute ? '待機中…' : '次へ'}
-          </Button>
-        </div>
+        <div
+  style={{
+    position: 'fixed',
+    bottom: '15%',       // 画面縦中央
+    left: '50%',      // 画面横中央
+    transform: 'translate(-50%, -50%)', // 中央揃え
+    zIndex: 200,
+  }}
+>
+  <Button
+    type="button"
+    disabled={nexting || waitingRoute}
+    onClick={handleNext}
+  >
+    {nexting ? '送信中…' : waitingRoute ? '待機中…' : '次へ'}
+  </Button>
+</div>
+
 
         {/* pixel_character画像とpixel_girl画像を画面下中央に並べて挿入 */}
         <div style={{
@@ -403,6 +414,7 @@ function SelectedAnswer() {
             style={{
               width: '13vw',
               height: 'auto',
+              zIndex: 0
             }}
           />
         </div>

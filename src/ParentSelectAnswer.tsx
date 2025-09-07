@@ -205,16 +205,18 @@ function ParentSelectAnswer() {
             color: '#fcfbfbff',
             marginBottom: '1vw',
             textAlign: 'center',
+            marginTop: '-5vw',
           }}
         />
         <Title
           text="ベストな回答を選択してください"
           style={{
-            fontSize: '3vw',
+            fontSize: '4vw',
             fontWeight: 700,
             color: '#fcfbfbff',
-            marginBottom: 0,
+            marginTop: "8vw",
             textAlign: 'center',
+            minWidth: '75vw',
           }}
         />
       </div>
@@ -241,7 +243,7 @@ function ParentSelectAnswer() {
 
 
       {/* 回答カード一覧（タイトル下・z-index:120・さらに下に配置） */}
-      <div className="parentselectanswer-answers">
+      <div className="parentselectanswer-answers" style={{marginTop: "10vw"}}>
         {answers.length > 0 ? (
           answers.map((a, idx) => (
             <Card
@@ -258,7 +260,7 @@ function ParentSelectAnswer() {
       </div>
 
       {/* ボタンをカードの下に絶対配置 */}
-      <div className="parentselectanswer-button-row">
+      <div className="parentselectanswer-button-row" style={{ marginTop: "15vw" }}>
         <Button
           disabled={selectedIndex === null || deciding}
           onClick={handleDecide}

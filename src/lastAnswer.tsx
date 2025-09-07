@@ -1,5 +1,6 @@
 import React from "react";
 import { supabase } from "./supabaseClient"; // ← 追加
+import { useNavigate } from "react-router-dom";
 import DanmakuInput from './DanmakuInput';
 
 // ---- API型 ----
@@ -86,6 +87,7 @@ const getRankIcon = (rank: number) => {
 
 const LastAnswer: React.FC = () => {
   const [isPressed, setIsPressed] = React.useState(false);
+  const navigate = useNavigate();
 
   // APIから取得してUIに流すための state（name/score で保持）
   const [results, setResults] = React.useState<{ name: string; score: number }[]>([]);
@@ -164,7 +166,7 @@ const LastAnswer: React.FC = () => {
     setIsPressed(true);
     setTimeout(() => {
       setIsPressed(false);
-      window.location.reload();
+      navigate("/");
     }, 120);
   };
 

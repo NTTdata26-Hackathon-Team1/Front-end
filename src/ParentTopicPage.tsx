@@ -310,7 +310,6 @@ const ParentTopicPage: React.FC = () => {
 
   return (
     <div className="parenttopick-bg">
-
       {/* 背景装飾（master スタイル維持） */}
       <img src="/pixel_cloud_small.png" className="parenttopick-cloud left" alt="cloud" />
       <img src="/pixel_cloud_small.png" className="parenttopick-cloud right2" alt="cloud" />
@@ -326,21 +325,18 @@ const ParentTopicPage: React.FC = () => {
 
       {/* タイトル・サブタイトル */}
       <style>{`
-        .titleStack > .standby-title { margin: 0 !important; }
-        .titleStack > .standby-title + .standby-title { margin-top: 0 !important; }
         .titleStack > .standby-title:nth-child(2) {
           font-size: 3.5vw !important;
           line-height: 1.9;
         }
       `}</style>
-      <div className="titleStack" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0' }}>
-        <Title text="あなたは親です" />
-        <Title text="お題を入力してください" />
+      <div className="titleStack" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0', marginTop: '3vw', marginBottom: '2vw' }}>
+  <Title text="あなたは親です" style={{ marginTop: '2vw' }} />
+  <Title text="お題を入力してください" style={{ marginTop: '10vw' }} />
       </div>
 
       {/* 入力フォーム */}
-      <div style={{ marginTop: '2vw' }} />
-      <div>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '25vw' }}>
         <Form
           value={topic}
           onChange={v => setTopic(v.slice(0, MAX_TOPIC_CHARS))}
@@ -356,10 +352,8 @@ const ParentTopicPage: React.FC = () => {
       </div>
 
       {/* AI候補ブロック */}
-      <div style={{ marginTop: '3vw' }} />
-      <div className="parenttopick-ai">
-        <div className="parenttopick-ai-head">
-          <div style={{ marginTop: 12, textAlign: "center" }} />
+      <div className="parenttopick-ai" style={{ marginTop: '3vw' }}>
+        <div className="parenttopick-ai-head" style={{ textAlign: 'center', marginBottom: '1vw' }}>
           <Button onClick={fetchAiTopics} disabled={aiLoading}>
             {aiLoading ? "取得中…" : "AI候補を取得"}
           </Button>
@@ -375,36 +369,56 @@ const ParentTopicPage: React.FC = () => {
             <div className="parenttopick-ai-list" style={{
               display: "flex",
               flexWrap: "wrap",
-              gap: 8,
+              gap: '1.5vw',
               justifyContent: "center",
-              marginTop: 8,
+              marginTop: '1vw',
               zIndex: 30,
+              background: 'rgba(255,255,255,0.08)',
+              borderRadius: '1vw',
+              padding: '2vw',
+              boxShadow: '0 0.5vw 2vw #18184844',
+              minHeight: '7vw',
+              maxWidth: '40vw',
+              width: '100%',
+              marginLeft: 'auto',
+              marginRight: 'auto',
             }}>
               {aiList.map((t, i) => (
-                <div key={i} className="parenttopick-ai-item">
+                <div key={i} className="parenttopick-ai-item" style={{
+                  background: '#7F9BE4',
+                  color: '#fff',
+                  borderRadius: '1vw',
+                  boxShadow: '0 0.3vw 1vw #18184844',
+                  padding: '1vw 2vw',
+                  fontSize: '1.5vw',
+                  fontWeight: 700,
+                  margin: '0.5vw',
+                  minWidth: '12vw',
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
                   <button
                     type="button"
                     className="parenttopick-chip"
                     onClick={() => pickToInput(t)}
                     title="クリックで入力欄に反映"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'inherit',
+                      font: 'inherit',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
                   >
                     {t}
                   </button>
-                  {/* 即送信したい場合は下のボタンも表示する */}
-                  {/*
-                  <button
-                    type="button"
-                    className="parenttopick-btn tiny"
-                    onClick={() => submitAiTopic(i)}
-                    disabled={sending}
-                  >
-                    この候補で送信
-                  </button>
-                  */}
                 </div>
               ))}
               {aiList.length === 0 && !aiErr && (
-                <div className="parenttopick-ai-hint">
+                <div className="parenttopick-ai-hint" style={{ color: '#fff', opacity: 0.7, fontSize: '1.2vw', textAlign: 'center', width: '100%' }}>
                   候補がまだありません。
                 </div>
               )}
