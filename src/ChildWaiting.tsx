@@ -143,22 +143,7 @@ const ChildWaiting: React.FC = () => {
                 <Round round={round} loading={roundLoading} />
             </div>
 
-            <div className="childwaiting-titlebox"
-                style={{
-                    fontSize: "4rem",
-                    letterSpacing: "0.1em",
-                    fontWeight: 400,
-                    color: "#fcfbfbff",
-                    textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-                    textAlign: "center",
-                    margin: "5rem 0 2rem 0",
-                    display: "inline-block",
-                }}
-            >
-                <Title
-                    text="親がお題を入力中です"
-                />
-            </div>
+            <div className="childwaiting-titlebox" style={{ fontSize: "4rem", letterSpacing: "0.1em", fontWeight: 400, color: "#fcfbfbff", textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4", textAlign: "center", margin: "5rem 0 2rem 0", display: "inline-block", }} > {"親がお題を入力中です".split("").map((char, i) => ( <span key={i} style={{ display: "inline-block", animation: `bounceChar 0.8s ${i * 0.08}s infinite`, }} > {char} </span> ))} <style> {` @keyframes bounceChar { 0% { transform: translateY(0);} 30% { transform: translateY(-18px);} 60% { transform: translateY(0);} 100% { transform: translateY(0);} } `} </style> </div>
 
             {errMsg && (
                 <div className="childwaiting-error">{errMsg}</div>
