@@ -4,6 +4,9 @@ import { supabase } from "./supabaseClient";
 import "./ChildAnswer.css";
 import DanmakuInput from "./DanmakuInput";
 import Round from "./component/round";
+import Title from "./component/title";
+import Form from "./component/form";
+import Button from "./component/button";
 
 // ★ mm:ss 文字列に整形
 function formatMs(ms: number) {
@@ -235,9 +238,36 @@ const ChildAnswer: React.FC = () => {
   const pickToInput = (text: string) =>
     setAnswer(String(text).slice(0, MAX_ANSWER_CHARS));
 
+
   return (
     <div className="childanswer-bg">
-      {/* 雲・キャラ・花・火・盆栽などイラスト */}
+
+      {/* タイトル・お題ブロック */}
+      <style>{`
+        .topicStack {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.6vw;
+          margin-bottom: 3vw;
+        }
+        .topicStack > .standby-title { margin: 0 !important; }
+        .topicStack > .standby-title:last-child  { font-size: 3.5vw !important; }
+      `}</style>
+      <div className="topicStack">
+        <Title text="お題" />
+        <Title
+          text={
+            loadingTopic
+              ? "お題を取得中…"
+              : topic
+              ? `「${topic}」`
+              : "未設定"
+          }
+        />
+      </div>
+
+      {/* イラスト・装飾 */}
       <img src="/pixel_cloud_small.png" alt="" className="childanswer-cloud-small" />
       <img src="/pixel_cloud_transparent.png" alt="" className="childanswer-cloud-transparent" />
       <img src="/pixel_character.png" alt="" className="childanswer-character" />
@@ -247,6 +277,7 @@ const ChildAnswer: React.FC = () => {
       <img src="/pixel_tree_bonsai.png" alt="" className="childanswer-tree-bonsai" />
       <img src="/pixel_moon.png" alt="" className="childanswer-moon" />
       <img src="/pixel_mushroom.png" alt="" className="childanswer-mushroom" />
+
       {/* パイプ */}
       <div className="childanswer-pipe-row">
         <img src="/pixel_pipe.png" alt="" className="childanswer-pipe1" />
@@ -255,95 +286,91 @@ const ChildAnswer: React.FC = () => {
       </div>
 
       {/* ラウンド数（左上固定） */}
-      {/* <div
-        className="childanswer-round"
-        style={{
-          textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-          fontWeight: 900,
-          color: "#fcfbfbff",
-        }}
-      >
-        ROUND {roundLoading ? "…" : round ?? "—"}
-      </div> */}
       <Round round={round} loading={roundLoading} />
-
-      {/* タイトル（中央大きく）＋お題 */}
-      <div
-        className="childanswer-title"
-        style={{
-          textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-          fontWeight: 900,
-          color: "#fcfbfbff",
-        }}
-      >
-        {loadingTopic ? "お題を取得中…" : topic ? <>お題は 「{topic}」 です</> : "お題は未設定"}
-      </div>
 
       {/* 右上：カウントダウン */}
       <div
         className="childanswer-countdown"
         aria-live="polite"
         style={{
-          position: "fixed",
-          top: 12,
-          right: 12,
-          background: "rgba(0,0,0,0.55)",
+          position: "absolute",
+          top: "1vw",
+          right: "2vw",
+          fontFamily: "'Pixel', 'Arial', sans-serif",
           color: "#fff",
-          padding: "8px 12px",
-          borderRadius: 12,
-          fontWeight: 700,
-          letterSpacing: "0.02em",
+          fontSize: "2vw",
+          textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
+          textAlign: "left",
+          fontWeight: 900,
+          marginTop: "1vw",
+          marginRight: "2vw",
+          zIndex: 10,
         }}
       >
-        {formatMs(remainingMs)}
+        {`残り時間: ${Math.floor(remainingMs / 1000)} 秒`}
       </div>
 
       {/* 入力フォーム */}
-      <form className="childanswer-form" onSubmit={handleSubmit}>
-        <input
-          className="childanswer-input"
-          type="text"
-          placeholder="解答を入力してください"
+      <div>
+        <Form
           value={answer}
-          onChange={(e) => setAnswer(e.target.value.slice(0, MAX_ANSWER_CHARS))}
-        />
-        <button
-          className="childanswer-btn"
-          type="submit"
-          disabled={!answer.trim() || sending}
+          onChange={(v: any) => setAnswer(v.slice(0, MAX_ANSWER_CHARS))}
+          onSubmit={handleSubmit}
+          disabled={sending}
+          maxLength={MAX_ANSWER_CHARS}
+          placeholder="解答を入力してください"
         >
-          {sending ? "送信中…" : "送信"}
-        </button>
-      </form>
-
-      {/* AI候補UI */}
-      <div style={{ marginTop: 12, textAlign: "center" }}>
-        <button className="childanswer-btn" onClick={fetchAiAnswers} disabled={aiLoading}>
-          {aiLoading ? "候補取得中…" : "AI候補を取得"}
-        </button>
+          <Button type="submit" disabled={!answer.trim() || sending}>
+            {sending ? "送信中…" : "送信"}
+          </Button>
+        </Form>
       </div>
 
-      {aiErr && <div className="childanswer-error">{aiErr}</div>}
+      {/* 空白追加 */}
+      <div style={{ marginTop: '3vw' }}></div>
 
-      <div
-        style={{
+      {/* AI候補ブロック */}
+      <div className="parenttopick-ai">
+        <div className="parenttopick-ai-head">
+          <div style={{ marginTop: 12, textAlign: "center" }}></div>
+          <Button onClick={fetchAiAnswers} disabled={aiLoading}>
+            {aiLoading ? "候補取得中…" : "AI候補を取得"}
+          </Button>
+        </div>
+        {!!aiErr && (
+          <div className="parenttopick-ai-error" style={{ color: '#ff3333', fontWeight: 'bold' }}>{aiErr}</div>
+        )}
+        <div className="parenttopick-ai-list" style={{
           display: "flex",
           flexWrap: "wrap",
           gap: 8,
           justifyContent: "center",
           marginTop: 8,
-        }}
-      >
-        {aiList.map((a, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <button className="childanswer-chip" onClick={() => pickToInput(a)}>
-              {a}
-            </button>
-          </div>
-        ))}
+          zIndex: 30,
+        }}>
+          {aiList.map((a, i) => (
+            <div key={i} className="parenttopick-ai-item">
+              <button
+                type="button"
+                className="parenttopick-chip"
+                onClick={() => pickToInput(a)}
+                title="クリックで入力欄に反映"
+              >
+                {a}
+              </button>
+            </div>
+          ))}
+          {aiList.length === 0 && !aiErr && (
+            <div className="parenttopick-ai-hint">
+              候補がまだありません。
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* エラー表示 */}
       {errorMsg && <div className="childanswer-error">{errorMsg}</div>}
+
       <DanmakuInput fixedBottom />
     </div>
   );
