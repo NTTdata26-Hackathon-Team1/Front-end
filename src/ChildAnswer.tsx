@@ -241,32 +241,6 @@ const ChildAnswer: React.FC = () => {
 
   return (
     <div className="childanswer-bg">
-
-      {/* タイトル・お題ブロック */}
-      <style>{`
-        .topicStack {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.6vw;
-          margin-bottom: 3vw;
-        }
-        .topicStack > .standby-title { margin: 0 !important; }
-        .topicStack > .standby-title:last-child  { font-size: 3.5vw !important; }
-      `}</style>
-      <div className="topicStack">
-        <Title text="お題" />
-        <Title
-          text={
-            loadingTopic
-              ? "お題を取得中…"
-              : topic
-              ? `「${topic}」`
-              : "未設定"
-          }
-        />
-      </div>
-
       {/* イラスト・装飾 */}
       <img src="/pixel_cloud_small.png" alt="" className="childanswer-cloud-small" />
       <img src="/pixel_cloud_transparent.png" alt="" className="childanswer-cloud-transparent" />
@@ -310,8 +284,25 @@ const ChildAnswer: React.FC = () => {
         {`残り時間: ${Math.floor(remainingMs / 1000)} 秒`}
       </div>
 
-      {/* 入力フォーム */}
-      <div>
+      {/* タイトル・お題ブロック（ParentTopicPage風に中央・余白調整） */}
+      <div className="titleStack" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0', marginTop: '3vw', marginBottom: '2vw' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '2vw', marginTop: '0vw', marginBottom: '0vw', width: '100%', justifyContent: 'center' }}>
+          <Title text="お題" style={{ marginTop: '0vw', marginBottom: '0vw', fontWeight: 'bold', fontSize: '4vw' }} />
+          <Title
+            text={
+              loadingTopic
+                ? "お題を取得中…"
+                : topic
+                ? `「${topic}」`
+                : "未設定"
+            }
+            style={{ marginTop: '6vw', marginBottom: '0vw', fontWeight: 'bold', fontSize: '5vw', minWidth: '20vw', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          />
+        </div>
+      </div>
+
+      {/* 入力フォーム（中央寄せ・余白調整） */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20vw' }}>
         <Form
           value={answer}
           onChange={(v: any) => setAnswer(v.slice(0, MAX_ANSWER_CHARS))}
@@ -326,13 +317,9 @@ const ChildAnswer: React.FC = () => {
         </Form>
       </div>
 
-      {/* 空白追加 */}
-      <div style={{ marginTop: '3vw' }}></div>
-
-      {/* AI候補ブロック */}
-      <div className="parenttopick-ai">
-        <div className="parenttopick-ai-head">
-          <div style={{ marginTop: 12, textAlign: "center" }}></div>
+      {/* AI候補ブロック（ParentTopicPage風に中央・カード表示） */}
+      <div className="parenttopick-ai" style={{ marginTop: '3vw' }}>
+        <div className="parenttopick-ai-head" style={{ textAlign: 'center', marginBottom: '1vw' }}>
           <Button onClick={fetchAiAnswers} disabled={aiLoading}>
             {aiLoading ? "候補取得中…" : "AI候補を取得"}
           </Button>
@@ -343,26 +330,56 @@ const ChildAnswer: React.FC = () => {
         <div className="parenttopick-ai-list" style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: 8,
+          gap: '1.5vw',
           justifyContent: "center",
-          marginTop: 8,
+          marginTop: '1vw',
           zIndex: 30,
+          background: aiList.length > 0 ? 'rgba(255,255,255,0.08)' : 'none',
+          borderRadius: aiList.length > 0 ? '1vw' : '0',
+          padding: aiList.length > 0 ? '2vw' : '0',
+          boxShadow: aiList.length > 0 ? '0 0.5vw 2vw #18184844' : 'none',
+          minHeight: aiList.length > 0 ? '7vw' : '0',
+          maxWidth: '40vw',
+          width: '100%',
+          marginLeft: 'auto',
+          marginRight: 'auto',
         }}>
           {aiList.map((a, i) => (
-            <div key={i} className="parenttopick-ai-item">
+            <div key={i} className="parenttopick-ai-item" style={{
+              background: '#7F9BE4',
+              color: '#fff',
+              borderRadius: '1vw',
+              boxShadow: '0 0.3vw 1vw #18184844',
+              padding: '1vw 2vw',
+              fontSize: '1.5vw',
+              fontWeight: 700,
+              margin: '0.5vw',
+              minWidth: '12vw',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
               <button
                 type="button"
                 className="parenttopick-chip"
                 onClick={() => pickToInput(a)}
                 title="クリックで入力欄に反映"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'inherit',
+                  font: 'inherit',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
               >
                 {a}
               </button>
             </div>
           ))}
           {aiList.length === 0 && !aiErr && (
-            <div className="parenttopick-ai-hint">
-              候補がまだありません。
+            <div className="parenttopick-ai-hint" style={{ color: '#fff', opacity: 0.7, fontSize: '1.2vw', textAlign: 'center', width: '100%' }}>
             </div>
           )}
         </div>
@@ -373,7 +390,6 @@ const ChildAnswer: React.FC = () => {
 
       <DanmakuInput fixedBottom />
     </div>
-    
   );
 };
 

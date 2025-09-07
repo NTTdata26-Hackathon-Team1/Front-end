@@ -183,11 +183,13 @@ function ChildAnswerList() {
         <Title
           text={loadingTopic ? 'お題を取得中…' : topic ? `「${topic}」` : 'お題未設定'}
           style={{
-            fontSize: '4vw',
+            fontSize: '4.5vw',
             fontWeight: 700,
             color: '#fcfbfbff',
             marginBottom: '1vw',
             textAlign: 'center',
+            minWidth: '75vw',
+            marginTop: '-5vw',
           }}
         />
         <Title
@@ -198,6 +200,8 @@ function ChildAnswerList() {
             color: '#fcfbfbff',
             marginBottom: 0,
             textAlign: 'center',
+            minWidth: '75vw',
+            marginTop: '5vw',
           }}
         />
       </div>
@@ -208,19 +212,57 @@ function ChildAnswerList() {
         )}
         {/* 回答カード一覧 */}
         <div className="childanswerlist-answers">
-          {answers.length > 0 ? (
-            answers.map((a, idx) => (
-              <Card
-                key={`${a.user_name}-${idx}`}
-                userName={a.user_name}
-                inputQA={a.input_QA}
-                selected={false}
-                onClick={() => {}}
-              />
-            ))
-          ) : (
-            <div className="childanswerlist-answer">（まだ回答はありません）</div>
-          )}
+          {/* 回答カード一覧 */}
+{/* 回答カード一覧（中央寄せ） */}
+{/* タイトルとカードの間隔コンテナ */}
+<div
+  style={{
+    position: 'absolute',
+    top: '4vw',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: '100%',
+    zIndex: 120,
+  }}
+>
+  {errorMsg && <div className="childanswerlist-error">{errorMsg}</div>}
+
+  {/* ★ グリッドはこれ1個だけ */}
+  <div
+    className="childanswerlist-answers"
+    style={{
+      marginTop: '20vw',                          // ここでマージントップ
+      display: 'grid',
+      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+      gap: '2vw',
+      justifyContent: 'center',                  // グリッド全体を中央へ
+      justifyItems: 'center',                    // 各セル内でも中央
+      maxWidth: '1100px',
+      marginLeft: 'auto',
+      marginRight: 'auto',              
+    }}
+  >
+    {answers.length > 0 ? (
+      answers.map((a, idx) => (
+        <div
+          key={`${a.user_name}-${idx}`}
+          className="answer-cell"
+          style={{ width: 'auto', maxWidth: 'none' }} // Cardのデフォルト幅を使う
+        >
+          <Card
+            userName={a.user_name}
+            inputQA={a.input_QA}
+            selected={false}
+            onClick={() => {}}
+          />
+        </div>
+      ))
+    ) : (
+      <div className="childanswerlist-answer">（まだ回答はありません）</div>
+    )}
+  </div>
+</div>
+
         </div>
       </div>
       {/* イラスト配置例: 雲・旗・きのこ・キャラなど */}

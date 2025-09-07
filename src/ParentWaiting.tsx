@@ -64,12 +64,50 @@ const ParentWaiting: React.FC = () => {
             }
 
             // ★ 変更: are-children-answers-complete を polling-api に投げる（tab_id を渡す）
-            const { data, error } = await supabase.functions.invoke<{ ok: boolean; ready?: boolean; round?: number; error?: string }>(
-                'get-round',
-                { body: { tab_id } }
-            );
+            const { data, error } = await supabase.functions.invoke<{
+                ok: boolean;
+                ready?: boolean;
+                a?: number;
+                b?: number;
+            }>('polling-api', {
+                body: { method: 'are-children-answers-complete', tab_id },
+            });
+
             if (error) {
-                setErrorMsg(error.message ?? 'get-round の呼び出しに失敗しました');
+                setErrorMsg(error.message ?? '確認中にエラーが発生しました');
+            } else if (data?.ok && data.ready) {
+                // すべての子回答が揃った → 次のページへ
+                routedRef.current = true;
+                if (timerRef.current) clearTimeout(timerRef.current);
+                navigate('/parentselectanswer');
+                return;
+            }
+        } catch (e: any) {
+            setErrorMsg(e?.message ?? '確認中にエラーが発生しました（unknown error）');
+        } finally {
+            inFlightRef.current = false;
+            scheduleNext();
+        }
+    };
+
+    // ★ 追加: 画面起動時に round を取得して左上に表示
+    const fetchRound = async () => {
+        const tab_id = tabIdRef.current;
+        if (!tab_id) {
+            setErrorMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
+            return;
+        }
+        setRoundLoading(true);
+        try {
+            const { data, error } = await supabase.functions.invoke<GetRoundResp>('main-api', {
+                body: { method: 'get-round', params: { tab_id } },
+            });
+            if (error) {
+                let msg = error.message;
+                if (msg && msg.includes('Failed to send a request to the Edge Function')) {
+                    msg = '';
+                }
+                setErrorMsg(msg ?? 'get-round の呼び出しに失敗しました');
             } else if (!data?.ok || typeof data.round !== 'number') {
                 setErrorMsg(data?.error ?? 'round の取得に失敗しました');
             } else {
@@ -118,7 +156,7 @@ const ParentWaiting: React.FC = () => {
                     style={{
                         fontSize: "4rem",
                         letterSpacing: "0.1em",
-                        fontWeight: 400,
+                        fontWeight: 700,
                         color: "#fcfbfbff",
                         textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
                         textAlign: "center",
