@@ -3,6 +3,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import DanmakuInput from './DanmakuInput';
+import Round from './component/round';
+import Title from './component/title';
+import Card from './component/card';
+import Button from './component/button';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
@@ -39,7 +43,6 @@ const titleStyle: React.CSSProperties = {
   marginBottom: '20px',
   color: '#fff',
   fontWeight: 'bold',
-  textShadow: '0 0.3vw 0 #ff69b4, 0 0.6vw 0 #ff69b4',
   letterSpacing: '0.1em',
   zIndex: 10
 };
@@ -279,50 +282,101 @@ function SelectedAnswer() {
   return (
     <>
       <div style={containerStyle}>
+
         {/* 左上：ラウンド表示 */}
         <div style={roundBadgeStyle}>
-          ROUND {roundLoading ? '…' : (round ?? '—')} 
+          <Round round={round} loading={roundLoading} />
         </div>
 
-        <h2 style={titleStyle}>ベストな回答に選ばれたのは</h2>
 
-        <div style={answerCardStyle}>
-          {best ? `${best.user_name} : ${best.input_QA}` : '（まだ決定していません）'}
+        {/* お題をタイトルコンポーネントで表示（現状タイトルの上） */}
+        <Title
+          text={best?.input_QA ? `「${best.input_QA}」` : 'お題未設定'}
+          style={{
+            fontSize: '2.2rem',
+            marginBottom: '1vw', // 余白を広げる
+            color: '#fcfbfbff',
+            textAlign: 'center',
+            fontWeight: 700,
+          }}
+        />
+        <Title
+          text="ベストな回答に選ばれたのは"
+          style={{
+            ...titleStyle,
+            marginTop: '1vw', // 余白を追加
+          }}
+        />
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 30 }}>
+          <Card
+            userName={best?.user_name ?? ''}
+            inputQA={best?.input_QA ?? '（まだ決定していません）'}
+            selected={!!best}
+            onClick={() => {}}
+          />
         </div>
 
-        <div style={nameListCardStyle}>
-          <div>他の人の回答</div>
-          <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
-            {others.length > 0 ? (
-              others.map((a, idx) => (
-                <li key={`${a.user_name}-${idx}`}>
-                  {`${a.user_name} : ${a.input_QA}`}
+        <div style={{
+          width: '350px',
+          minHeight: '180px',
+          background: '#7F9BE4',
+          border: '2px solid #fff',
+          borderRadius: '12px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.2rem',
+          margin: '0 auto 30px auto',
+          padding: '20px',
+          textAlign: 'center',
+          color: '#fff',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        }}>
+          <div style={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#fff', marginBottom: '1vw' }}>
+            他の人の回答
+          </div>
+          {others.length > 0 ? (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {others.map((a, idx) => (
+                <li key={`${a.user_name}-${idx}`} style={{ marginBottom: '0.7em' }}>
+                  <div className="roominfo-member" style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: '6px',
+                    padding: '8px 10px',
+                    fontWeight: 600,
+                    color: '#fff',
+                    display: 'inline-block',
+                  }}>
+                    <span style={{ fontWeight: 700 }}>{a.user_name}</span> : {a.input_QA}
+                  </div>
                 </li>
-              ))
-            ) : (
-              <li>（他の回答なし）</li>
-            )}
-          </ul>
+              ))}
+            </ul>
+          ) : (
+            <div style={{ color: '#fff', fontSize: '1.1rem', opacity: 0.7 }}>（他の回答なし）</div>
+          )}
         </div>
 
         {errorMsg && (
           <div style={{ color: 'crimson', marginBottom: 16 }}>{errorMsg}</div>
         )}
 
-        <button
-          style={buttonStyle}
-          onClick={handleNext}
-          disabled={nexting || waitingRoute}
-          title={
-            nexting
-              ? '送信中…'
-              : waitingRoute
-                ? '他の参加者を待機しています…'
-                : '次へ'
-          }
-        >
-          {nexting ? '送信中…' : waitingRoute ? '待機中…' : '次へ'}
-        </button>
+        <div style={{
+          position: 'fixed',
+          right: '4vw',
+          bottom: '9vw',
+          zIndex: 200,
+        }}>
+          <Button
+            type="button"
+            disabled={nexting || waitingRoute}
+            onClick={handleNext}
+          >
+            {nexting ? '送信中…' : waitingRoute ? '待機中…' : '次へ'}
+          </Button>
+        </div>
 
         {/* pixel_character画像とpixel_girl画像を画面下中央に並べて挿入 */}
         <div style={{
