@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import DanmakuInput from "./DanmakuInput";
 import "./ParentTopicPage.css";
+import Round from "./component/round"; 
+import Title from "./component/title";
+import Form from "./component/form";
+import Button from "./component/button";
 
 // sessionStorage から引き継ぎ
 const getTabId = () => sessionStorage.getItem("tab_id") ?? "";
@@ -306,106 +310,76 @@ const ParentTopicPage: React.FC = () => {
 
   return (
     <div className="parenttopick-bg">
+
       {/* 背景装飾（master スタイル維持） */}
-      <img
-        src="/pixel_cloud_small.png"
-        className="parenttopick-cloud left"
-        alt="cloud"
-      />
-      <img
-        src="/pixel_cloud_small.png"
-        className="parenttopick-cloud right2"
-        alt="cloud"
-      />
-      <img
-        src="/pixel_cloud_small.png"
-        className="parenttopick-cloud left2"
-        alt="cloud"
-      />
-      <img
-        src="/pixel_cloud_small.png"
-        className="parenttopick-cloud right3"
-        alt="cloud"
-      />
-      <img
-        src="/pixel_cloud_small.png"
-        className="parenttopick-cloud left3"
-        alt="cloud"
-      />
-      <img
-        src="/pixel_girl.png"
-        className="parenttopick-character"
-        alt="character"
-      />
-      <img
-        src="/pixel_sunflower.png"
-        className="parenttopick-sunflower"
-        alt="sunflower"
-      />
-      <div className="parenttopick-fire-row">
-        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
-        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
-        <img src="/pixel_fire.png" className="parenttopick-fire" alt="fire" />
-      </div>
-      <img
-        src="/pixel_tree_bonsai.png"
-        className="parenttopick-tree-bonsai"
-        alt="tree-bonsai"
-      />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud right2" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left2" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud right3" alt="cloud" />
+      <img src="/pixel_cloud_small.png" className="parenttopick-cloud left3" alt="cloud" />
+      <img src="/pixel_girl.png" className="parenttopick-character" alt="character" />
+      <img src="/pixel_sunflower.png" className="parenttopick-sunflower" alt="sunflower" />
+      <img src="/pixel_tree_bonsai.png" className="parenttopick-tree-bonsai" alt="tree-bonsai" />
 
       {/* ラウンド表示 */}
-      <div className="parenttopick-round">
-        ROUND {roundLoading ? "…" : round ?? "—"}
-      </div>
+      <Round round={round} loading={roundLoading} />
 
       {/* タイトル・サブタイトル */}
-      <div className="parenttopick-title">あなたは親です</div>
-      <div className="parenttopick-subtitle">お題を入力してください</div>
+      <style>{`
+        .titleStack > .standby-title { margin: 0 !important; }
+        .titleStack > .standby-title + .standby-title { margin-top: 0 !important; }
+        .titleStack > .standby-title:nth-child(2) {
+          font-size: 3.5vw !important;
+          line-height: 1.9;
+        }
+      `}</style>
+      <div className="titleStack" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0' }}>
+        <Title text="あなたは親です" />
+        <Title text="お題を入力してください" />
+      </div>
 
       {/* 入力フォーム */}
-      <form className="parenttopick-form" onSubmit={handleSubmit}>
-        <input
-          className="parenttopick-input"
-          type="text"
-          placeholder="お題入力欄"
+      <div style={{ marginTop: '2vw' }} />
+      <div>
+        <Form
           value={topic}
-          onChange={(e) => setTopic(e.target.value.slice(0, MAX_TOPIC_CHARS))}
+          onChange={v => setTopic(v.slice(0, MAX_TOPIC_CHARS))}
+          onSubmit={handleSubmit}
           disabled={sending}
-        />
-        <button
-          className="parenttopick-btn"
-          type="submit"
-          disabled={!topic.trim() || sending}
+          maxLength={MAX_TOPIC_CHARS}
+          placeholder="お題入力欄"
         >
-          {sending ? "送信中…" : "送信"}
-        </button>
-      </form>
-
-      {/* 文字数ヘルパー */}
-      <div className="parenttopick-helper">
-        {topic.length}/{MAX_TOPIC_CHARS}
+          <Button type="submit" disabled={!topic.trim() || sending}>
+            {sending ? "送信中…" : "送信"}
+          </Button>
+        </Form>
       </div>
 
       {/* AI候補ブロック */}
+      <div style={{ marginTop: '3vw' }} />
       <div className="parenttopick-ai">
         <div className="parenttopick-ai-head">
-          <span className="parenttopick-ai-title">AI候補</span>
-          <button
-            type="button"
-            className="parenttopick-btn secondary"
-            onClick={fetchAiTopics}
-            disabled={aiLoading}
-          >
+          <div style={{ marginTop: 12, textAlign: "center" }} />
+          <Button onClick={fetchAiTopics} disabled={aiLoading}>
             {aiLoading ? "取得中…" : "AI候補を取得"}
-          </button>
+          </Button>
         </div>
 
         {/* ボタンを押したら表示 */}
         {aiVisible && (
           <>
-            {!!aiErr && <div className="parenttopick-ai-error">{aiErr}</div>}
+            {!!aiErr && (
+              <div className="parenttopick-ai-error" style={{ color: '#ff3333', fontWeight: 'bold' }}>{aiErr}</div>
+            )}
 
-            <div className="parenttopick-ai-list">
+            <div className="parenttopick-ai-list" style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              justifyContent: "center",
+              marginTop: 8,
+              zIndex: 30,
+            }}>
               {aiList.map((t, i) => (
                 <div key={i} className="parenttopick-ai-item">
                   <button
@@ -416,7 +390,6 @@ const ParentTopicPage: React.FC = () => {
                   >
                     {t}
                   </button>
-
                   {/* 即送信したい場合は下のボタンも表示する */}
                   {/*
                   <button
@@ -446,11 +419,15 @@ const ParentTopicPage: React.FC = () => {
           position: "absolute",
           top: "1vw",
           right: "2vw",
+          fontFamily: "'Pixel', 'Arial', sans-serif",
           color: "#fff",
-          fontWeight: "bold",
-          fontSize: "3vw",
-          textShadow: "0.2vw 0.2vw 0 #ff69b4",
-          zIndex: 40,
+          fontSize: "2vw",
+          textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
+          textAlign: "left",
+          fontWeight: 900,
+          marginTop: "1vw",
+          marginRight: "2vw",
+          zIndex: 10,
         }}
         aria-live="polite"
       >
@@ -461,11 +438,10 @@ const ParentTopicPage: React.FC = () => {
       {err && (
         <div
           style={{
-            color: "#ff3333",
+            color: "#fcfbfbff",
             marginTop: "1vw",
             fontWeight: "bold",
             fontSize: "1.2vw",
-            textShadow: "0.1vw 0.1vw 0 #fff",
           }}
         >
           {err}
