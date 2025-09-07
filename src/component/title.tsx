@@ -2,9 +2,10 @@ import React from "react";
 
 type TitleProps = {
   text?: string;
+  style?: React.CSSProperties;
 };
 
-const Title: React.FC<TitleProps> = ({ text = "朝までそれ正解" }) => (
+const Title: React.FC<TitleProps> = ({ text = "朝までそれ正解", style }) => (
   <h1
     className="standby-title"
     style={{
@@ -17,6 +18,7 @@ const Title: React.FC<TitleProps> = ({ text = "朝までそれ正解" }) => (
       marginBottom: "4vw",
       zIndex: 10,
       fontWeight: 900,
+      ...(style || {}),
     }}
   >
     {text}

@@ -180,12 +180,26 @@ function ChildAnswerList() {
       <Round round={round} loading={roundLoading} />
       {/* タイトル（お題 & 回答一覧） */}
       <div style={{ position: 'absolute', top: '5vw', left: '50%', transform: 'translateX(-50%)', zIndex: 120, textAlign: 'center' }}>
-        <div style={{ fontSize: '4vw', fontWeight: 700, color: '#fcfbfbff', textShadow: '0 2px 12px #f52ba7ff, 0 1px 0 #f645bbff', marginBottom: '1vw' }}>
-          {loadingTopic ? 'お題を取得中…' : topic ? `「${topic}」` : 'お題未設定'}
-        </div>
-        <div style={{ fontSize: '3vw', fontWeight: 700, color: '#fcfbfbff', textShadow: '0 2px 8px #f52ba7ff, 0 1px 0 #f645bbff' }}>
-          回答一覧
-        </div>
+        <Title
+          text={loadingTopic ? 'お題を取得中…' : topic ? `「${topic}」` : 'お題未設定'}
+          style={{
+            fontSize: '4vw',
+            fontWeight: 700,
+            color: '#fcfbfbff',
+            marginBottom: '1vw',
+            textAlign: 'center',
+          }}
+        />
+        <Title
+          text="回答一覧"
+          style={{
+            fontSize: '3vw',
+            fontWeight: 700,
+            color: '#fcfbfbff',
+            marginBottom: 0,
+            textAlign: 'center',
+          }}
+        />
       </div>
       {/* タイトルとカードの間隔をさらに狭く（top: 9vw, marginTop: 1vw） */}
       <div style={{ position: 'absolute', top: '4vw', left: '50%', transform: 'translateX(-50%)', width: '100%', zIndex: 120 }}>
