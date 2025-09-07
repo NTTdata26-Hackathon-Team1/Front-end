@@ -373,6 +373,7 @@ const ChildAnswer: React.FC = () => {
 
       <DanmakuInput fixedBottom />
     </div>
+    
   );
 };
 

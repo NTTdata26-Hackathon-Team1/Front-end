@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import './ParentWaiting.css';
-import DanmakuInput from './DanmakuInput';   
+import DanmakuInput from './DanmakuInput';
+import Title from "./component/title";
+import Round from "./component/round";
 
 const POLL_MS = 2000; // 2秒おきに確認
 
@@ -62,44 +64,10 @@ const ParentWaiting: React.FC = () => {
             }
 
             // ★ 変更: are-children-answers-complete を polling-api に投げる（tab_id を渡す）
-            const { data, error } = await supabase.functions.invoke<{
-                ok: boolean;
-                ready?: boolean;
-                a?: number;
-                b?: number;
-            }>('polling-api', {
-                body: { method: 'are-children-answers-complete', tab_id },
-            });
-
-            if (error) {
-                setErrorMsg(error.message ?? '確認中にエラーが発生しました');
-            } else if (data?.ok && data.ready) {
-                // すべての子回答が揃った → 次のページへ
-                routedRef.current = true;
-                if (timerRef.current) clearTimeout(timerRef.current);
-                navigate('/parentselectanswer');
-                return;
-            }
-        } catch (e: any) {
-            setErrorMsg(e?.message ?? '確認中にエラーが発生しました（unknown error）');
-        } finally {
-            inFlightRef.current = false;
-            scheduleNext();
-        }
-    };
-
-    // ★ 追加: 画面起動時に round を取得して左上に表示
-    const fetchRound = async () => {
-        const tab_id = tabIdRef.current;
-        if (!tab_id) {
-            setErrorMsg('tab_id が見つかりませんでした（local/sessionStorage または URL の ?tab_id= を確認してください）');
-            return;
-        }
-        setRoundLoading(true);
-        try {
-            const { data, error } = await supabase.functions.invoke<GetRoundResp>('main-api', {
-                body: { method: 'get-round', params: { tab_id } },
-            });
+            const { data, error } = await supabase.functions.invoke<{ ok: boolean; ready?: boolean; round?: number; error?: string }>(
+                'get-round',
+                { body: { tab_id } }
+            );
             if (error) {
                 setErrorMsg(error.message ?? 'get-round の呼び出しに失敗しました');
             } else if (!data?.ok || typeof data.round !== 'number') {
@@ -118,8 +86,7 @@ const ParentWaiting: React.FC = () => {
         cancelledRef.current = false;
         tabIdRef.current = resolveTabId(); // 初回に tab_id を確定
 
-        // 左上ラウンド表示の初期化
-        fetchRound();
+    // 左上ラウンド表示の初期化（pollOnceで取得）
 
         // 初回即ポーリング開始
         pollOnce();
@@ -133,27 +100,30 @@ const ParentWaiting: React.FC = () => {
 
     return (
         <div className="parentwaiting-bg">
-            <div className="parentwaiting-round"
-            style={{
-                textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
-                fontWeight: 900,
-                color: "#fcfbfbff",
-            }}>
-                ROUND{roundLoading ? '…' : (round ?? '—')}
+            {/* ラウンド表示（Roundコンポーネントを使用） */}
+            <div
+                style={{
+                    marginTop: "2rem",
+                    marginBottom: "2rem",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <Round round={round} loading={roundLoading} />
             </div>
+
             <div className="parentwaiting-titlebox">
                 <div
-                    className="parentwaiting-title"
                     style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        margin: "2rem 0",
                         fontSize: "4rem",
-                        fontWeight: 700,
                         letterSpacing: "0.1em",
+                        fontWeight: 400,
                         color: "#fcfbfbff",
-                        textShadow: "0 4px 24px #f52ba7ff, 0 1px 0 #f645bbff",
+                        textShadow: "0 0 1vw #ff69b4, 0.3vw 0.3vw 0 #ff69b4, -0.3vw -0.3vw 0 #ff69b4",
+                        textAlign: "center",
+                        margin: "5rem 0 2rem 0",
+                        display: "inline-block",
                     }}
                 >
                     {"子が回答を入力中です".split("").map((char, i) => (
@@ -169,12 +139,12 @@ const ParentWaiting: React.FC = () => {
                     ))}
                     <style>
                         {`
-                        @keyframes bounceChar {
+                          @keyframes bounceChar {
                             0% { transform: translateY(0);}
                             30% { transform: translateY(-18px);}
                             60% { transform: translateY(0);}
                             100% { transform: translateY(0);}
-                        }
+                          }
                         `}
                     </style>
                 </div>
