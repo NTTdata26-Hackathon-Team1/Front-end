@@ -18,6 +18,7 @@ const Round: React.FC<RoundProps> = ({ round, loading }) => (
       marginTop: "1vw",
       marginLeft: "2vw",
       zIndex: 10,
+      whiteSpace: "nowrap",
     }}
   >
     ROUND {loading ? "…" : round ?? "—"}

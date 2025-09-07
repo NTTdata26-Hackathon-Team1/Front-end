@@ -3,6 +3,10 @@ import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './ParentSelectAnswer.css';
 import Card from './component/card';
+import Title from './component/title';
+import Round from './component/round';
+import Button from './component/button';
+import DanmakuInput from './DanmakuInput';
 
 type AnswerPair = { user_name: string; input_QA: string };
 type GetRoundResp = { ok: boolean; round?: number; error?: string };
@@ -37,6 +41,9 @@ function ParentSelectAnswer() {
   const [round, setRound] = useState<number | null>(null);
   const [roundLoading, setRoundLoading] = useState<boolean>(false);
 
+  const [topic, setTopic] = useState<string | null>(null);
+  const [loadingTopic, setLoadingTopic] = useState<boolean>(false);
+
   const navigate = useNavigate();
   const navTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tabIdRef = useRef<string | null>(null);
@@ -67,6 +74,30 @@ function ParentSelectAnswer() {
     }
   };
 
+  // お題取得
+  const fetchTopic = async () => {
+    const tab_id = tabIdRef.current;
+    if (!tab_id) return;
+    setLoadingTopic(true);
+    try {
+      const { data, error } = await supabase.functions.invoke<{ ok: boolean; topic?: string | null; error?: string }>(
+        'main-api',
+        { body: { action: 'get-current-topic', tab_id } }
+      );
+      if (error) {
+        setTopic(null);
+      } else if (!data?.ok) {
+        setTopic(null);
+      } else {
+        setTopic(typeof data.topic === 'string' && data.topic.length > 0 ? data.topic : null);
+      }
+    } catch {
+      setTopic(null);
+    } finally {
+      setLoadingTopic(false);
+    }
+  };
+
   // 起動時：候補の取得（main-api / list-parent-select-answers） & round 取得
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +105,7 @@ function ParentSelectAnswer() {
 
     // 左上 round 表示の初期化
     fetchRound();
+    fetchTopic();
 
     (async () => {
       setLoading(true);
@@ -158,13 +190,34 @@ function ParentSelectAnswer() {
 
   return (
     <div className="parentselectanswer-bg">
-      {/* 左上：ラウンド表示 */}
-      <div className="parentselectanswer-round">
-        ROUND {roundLoading ? '…' : (round ?? '—')}
+      {/* 左上：ラウンド表示（ChildAnswerListと同じ配置・サイズ） */}
+      <div style={{ position: 'absolute', top: '1vw', left: '5vw', transform: 'translateX(-50%)', zIndex: 120 }}>
+        <Round round={round} loading={roundLoading} />
       </div>
 
-      {/* タイトル */}
-      <h2 className="parentselectanswer-title">ベストな回答を選択してください</h2>
+      {/* タイトル・お題（ChildAnswerListと同じ表示方法） */}
+      <div style={{ position: 'absolute', top: '5vw', left: '50%', transform: 'translateX(-50%)', zIndex: 120, textAlign: 'center', width: '100%' }}>
+        <Title
+          text={loadingTopic ? 'お題を取得中…' : topic ? `「${topic}」` : 'お題未設定'}
+          style={{
+            fontSize: '4vw',
+            fontWeight: 700,
+            color: '#fcfbfbff',
+            marginBottom: '1vw',
+            textAlign: 'center',
+          }}
+        />
+        <Title
+          text="ベストな回答を選択してください"
+          style={{
+            fontSize: '3vw',
+            fontWeight: 700,
+            color: '#fcfbfbff',
+            marginBottom: 0,
+            textAlign: 'center',
+          }}
+        />
+      </div>
 
       {loading && <div className="parentselectanswer-loading">読み込み中…</div>}
       {errMsg && <div className="parentselectanswer-error">{errMsg}</div>}
@@ -187,21 +240,10 @@ function ParentSelectAnswer() {
       <img src="/pixel_cactus.png" alt="" className="parentselectanswer-cactus2" />
 
 
-      {/* 回答カード一覧 */}
+      {/* 回答カード一覧（タイトル下・z-index:120・さらに下に配置） */}
       <div className="parentselectanswer-answers">
         {answers.length > 0 ? (
           answers.map((a, idx) => (
-            // <div
-            //   key={`${a.user_name}-${idx}`}
-            //   className={`parentselectanswer-answer${selectedIndex === idx ? ' selected' : ''}`}
-            //   onClick={() => setSelectedIndex(idx)}
-            //   title={`${a.user_name} : ${a.input_QA}`}
-            // >
-            //   <div>
-            //     <div className="parentselectanswer-answer-label">{`${a.user_name}`}</div>
-            //     <div className="parentselectanswer-answer-text">{`${a.input_QA}`}</div>
-            //   </div>
-            // </div>
             <Card
               key={`${a.user_name}-${idx}`}
               userName={a.user_name}
@@ -215,14 +257,16 @@ function ParentSelectAnswer() {
         )}
       </div>
 
-      <button
-        className="parentselectanswer-button"
-        disabled={selectedIndex === null || deciding}
-        onClick={handleDecide}
-        title={deciding ? '決定処理中…' : 'この回答で決定する'}
-      >
-        {deciding ? '決定中…' : '決定'}
-      </button>
+      {/* ボタンをカードの下に絶対配置 */}
+      <div className="parentselectanswer-button-row">
+        <Button
+          disabled={selectedIndex === null || deciding}
+          onClick={handleDecide}
+        >
+          {deciding ? '決定中…' : '決定'}
+        </Button>
+      </div>
+      <DanmakuInput fixedBottom />
     </div>
   );
 }
